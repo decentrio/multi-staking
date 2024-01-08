@@ -217,10 +217,9 @@ func (k msgServer) Undelegate(goCtx context.Context, msg *types.MsgUndelegate) (
 	}
 
 	unbondCoin := sdk.NewCoin(k.stakingKeeper.BondDenom(ctx), unbondAmount)
-	intermediaryDelegator := types.IntermediaryDelegator(multiStakerAddr)
 
 	sdkMsg := &stakingtypes.MsgUndelegate{
-		DelegatorAddress: intermediaryDelegator.String(),
+		DelegatorAddress: multiStakerAddr.String(),
 		ValidatorAddress: msg.ValidatorAddress,
 		Amount:           unbondCoin,
 	}
@@ -245,19 +244,18 @@ func (k msgServer) CancelUnbondingDelegation(goCtx context.Context, msg *types.M
 		return nil, err
 	}
 
-	intermediaryDelegator := types.IntermediaryDelegator(multiStakerAddr)
 	if !k.isValMultiStakingCoin(ctx, valAcc, msg.Amount) {
 		return nil, fmt.Errorf("not allow coin")
 	}
 
-	unbondEntry, found := k.GetUnbondingEntryAtCreationHeight(ctx, intermediaryDelegator, valAcc, msg.CreationHeight)
+	unbondEntry, found := k.GetUnbondingEntryAtCreationHeight(ctx, multiStakerAddr, valAcc, msg.CreationHeight)
 	if !found {
 		return nil, fmt.Errorf("unbondEntry not found")
 	}
 	cancelUnbondingCoin := sdk.NewCoin(k.stakingKeeper.BondDenom(ctx), unbondEntry.Balance)
 
 	sdkMsg := &stakingtypes.MsgCancelUnbondingDelegation{
-		DelegatorAddress: intermediaryDelegator.String(),
+		DelegatorAddress: multiStakerAddr.String(),
 		ValidatorAddress: msg.ValidatorAddress,
 		Amount:           cancelUnbondingCoin,
 	}
