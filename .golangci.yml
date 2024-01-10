@@ -2,7 +2,6 @@ run:
   tests: true
   timeout: 15m
   sort-results: true
-  exclude-dir: testing/simapp
   skip-files:
     - server/grpc/gogoreflection/fix_registration.go
     - "fix_registration.go"

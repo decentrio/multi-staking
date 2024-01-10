@@ -141,7 +141,10 @@ func TestAppImportExport(t *testing.T) {
 
 	fmt.Printf("importing genesis...\n")
 
-	_, newDB, newDir, _, _, err := SetupSimulation("leveldb-app-sim-2", "Simulation-2")
+	_, newDB, newDir, _, skip, err := SetupSimulation("leveldb-app-sim-2", "Simulation-2")
+	if skip {
+		t.Skip("skipping application import/export simulation")
+	}
 	require.NoError(t, err, "simulation setup failed")
 
 	defer func() {
@@ -246,7 +249,10 @@ func TestAppSimulationAfterImport(t *testing.T) {
 
 	fmt.Printf("importing genesis...\n")
 
-	_, newDB, newDir, _, _, err := SetupSimulation("leveldb-app-sim-2", "Simulation-2")
+	_, newDB, newDir, _, skip, err := SetupSimulation("leveldb-app-sim-2", "Simulation-2")
+	if skip {
+		t.Skip("skipping application import/export simulation")
+	}
 	require.NoError(t, err, "simulation setup failed")
 
 	defer func() {
