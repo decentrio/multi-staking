@@ -13,7 +13,7 @@ func NewMultiStakingLock(lockID *LockID, lockedCoin MultiStakingCoin) MultiStaki
 	}
 }
 
-func (lock MultiStakingLock) MultiStakingCoin(withAmount sdk.Int) MultiStakingCoin {
+func (lock MultiStakingLock) MultiStakingCoin(withAmount math.Int) MultiStakingCoin {
 	return lock.LockedCoin.WithAmount(withAmount)
 }
 
@@ -37,7 +37,7 @@ func (m MultiStakingLock) GetBondWeight() sdk.Dec {
 	return m.LockedCoin.BondWeight
 }
 
-func (multiStakingLock MultiStakingLock) LockedAmountToBondAmount(amount math.Int) sdk.Int {
+func (multiStakingLock MultiStakingLock) LockedAmountToBondAmount(amount math.Int) math.Int {
 	return multiStakingLock.LockedCoin.WithAmount(amount).BondValue()
 }
 

@@ -16,7 +16,7 @@ func (k Keeper) GetUnlockEntryAtCreationHeight(ctx sdk.Context, unlockID types.U
 	}
 	var (
 		unlockEntry      types.UnlockEntry
-		foundUnlockEntry bool = false
+		foundUnlockEntry = false
 	)
 
 	for _, entry := range unlock.Entries {

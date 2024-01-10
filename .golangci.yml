@@ -1,12 +1,21 @@
 run:
   tests: true
-  timeout: 10m
+  timeout: 15m
+  sort-results: true
+  skip-files:
+    - server/grpc/gogoreflection/fix_registration.go
+    - "fix_registration.go"
+    - ".*\\.pb\\.go$"
+    - ".*\\.pb\\.gw\\.go$"
+    - ".*\\.pulsar\\.go$"
+    - crypto/keys/secp256k1/internal/*
 
 linters:
   disable-all: true
   enable:
-    - exportloopref
+    - dogsled
     - errcheck
+    - exportloopref
     - gci
     - goconst
     - gocritic
@@ -17,31 +26,31 @@ linters:
     - ineffassign
     - misspell
     - nakedret
+    - nolintlint
+    - revive
     - staticcheck
+    - stylecheck
     - thelper
     - typecheck
-    - stylecheck
-    - revive
-    - typecheck
-    - tenv
     - unconvert
-    # Prefer unparam over revive's unused param. It is more thorough in its checking.
-    - unparam
     - unused
-    - misspell
 
 issues:
   exclude-rules:
-    - text: 'differs only by capitalization to method'
-      linters:
-        - revive
-    - text: 'Use of weak random number generator'
+    - text: "Use of weak random number generator"
       linters:
         - gosec
-    - linters:
-        - staticcheck
-      text: "SA1019:" # silence errors on usage of deprecated funcs
-
+    - text: "ST1003:"
+      linters:
+        - stylecheck
+    # FIXME: Disabled until golangci-lint updates stylecheck with this fix:
+    # https://github.com/dominikh/go-tools/issues/389
+    - text: "ST1016:"
+      linters:
+        - stylecheck
+    - text: "leading space"
+      linters:
+        - nolintlint
   max-issues-per-linter: 10000
   max-same-issues: 10000
 
@@ -58,9 +67,6 @@ linters-settings:
       - prefix(github.com/cosmos/ibc-go)
     custom-order: true
   revive:
-    enable-all-rules: true
-    # Do NOT whine about the following, full explanation found in:
-    # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#description-of-available-rules
     rules:
       - name: use-any
         disabled: true
@@ -114,3 +120,6 @@ linters-settings:
           - 'fmt.Print'
           - 'fmt.Println'
           - 'myFunction'
+
+exclude:
+  - testing/simapp
