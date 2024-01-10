@@ -3,8 +3,9 @@ package keeper
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/realio-tech/multi-staking-module/x/multi-staking/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func (k Keeper) GetUnlockEntryAtCreationHeight(ctx sdk.Context, unlockID types.UnlockID, creationHeight int64) (types.UnlockEntry, bool) {
