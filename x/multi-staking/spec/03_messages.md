@@ -115,8 +115,13 @@ the EndBlocker.
 
 Logic flow:
 
-* Calculate amount of `sdkbond token` need to be `sdk redelegate`
+* Calculate amount of `BondCoin` need to be `redelegate`
 
+* Decrease `MultiStakingCoin` of delegation at `fromValidator` and add that `MultiStakingCoin` to delegation at `toValidator` then calculate new `BondWeight` of this lock record.
 * Call `stakingkeeper.BeginRedelegate()` with the calculated amount of `sdkbond token`
 
-* Update `DVPairSDKBondTokens`
+This message is expected to fail if:
+
+* `multi staking denom` is mismatched with validator.
+* Lock not found.
+* The call to `stakingkeeper.BeginRedelegation()` returns an error.
