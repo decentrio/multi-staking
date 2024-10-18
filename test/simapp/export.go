@@ -22,7 +22,39 @@ func (app *SimApp) ExportAppStateAndValidators(
 	modulesToExport []string,
 ) (servertypes.ExportedApp, error) {
 	// as if they could withdraw from the start of the next block
-	ctx := app.BaseApp.NewContextLegacy(false, tmproto.Header{Height: app.LastBlockHeight()})
+	ctx := app.BaseApp.NewContextLegacy(true, tmproto.Header{Height: app.LastBlockHeight()})
+
+	// We export at last height + 1, because that's the height at which
+	// Tendermint will start InitChain.
+	height := app.LastBlockHeight() + 1
+	if forZeroHeight {
+		height = 0
+		app.prepForZeroHeightGenesis(ctx, jailAllowedAddrs)
+	}
+
+	genState, err := app.mm.ExportGenesisForModules(ctx, app.appCodec, modulesToExport)
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
+	appState, err := json.MarshalIndent(genState, "", "  ")
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
+
+	validators, err := staking.WriteValidators(ctx, app.StakingKeeper)
+	return servertypes.ExportedApp{
+		AppState:        appState,
+		Validators:      validators,
+		Height:          height,
+		ConsensusParams: app.BaseApp.GetConsensusParams(ctx),
+	}, err
+}
+
+func (app *SimApp) ExportAppStateAndValidators2(
+	ctx sdk.Context,
+	forZeroHeight bool, jailAllowedAddrs []string,
+	modulesToExport []string,
+) (servertypes.ExportedApp, error) {
 
 	// We export at last height + 1, because that's the height at which
 	// Tendermint will start InitChain.
