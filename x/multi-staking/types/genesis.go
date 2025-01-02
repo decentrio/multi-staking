@@ -3,6 +3,7 @@ package types
 import (
 	"cosmossdk.io/errors"
 
+	"cosmossdk.io/math"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -22,6 +23,11 @@ func DefaultGenesis() *GenesisState {
 	stakingGenesis := stakingtypes.DefaultGenesisState()
 
 	return &GenesisState{
+		MultiStakingCoinInfo: []MultiStakingCoinInfo{{
+			Denom:      "ario",
+			BondWeight: math.LegacyMustNewDecFromStr("10"),
+		},
+		},
 		StakingGenesisState: *stakingGenesis,
 	}
 }
