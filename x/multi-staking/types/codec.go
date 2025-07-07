@@ -7,10 +7,9 @@ import (
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
-	v1beta1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
-
 	authzcodec "github.com/cosmos/cosmos-sdk/x/authz/codec"
 	govcodec "github.com/cosmos/cosmos-sdk/x/gov/codec"
+	v1beta1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	groupcodec "github.com/cosmos/cosmos-sdk/x/group/codec"
 )
 

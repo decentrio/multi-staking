@@ -2,6 +2,7 @@ package types
 
 import (
 	sdkerrors "cosmossdk.io/errors"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -10,9 +11,7 @@ const (
 	TypeMsgUpdateMultiStakingParams = "update_multistaking_params"
 )
 
-var (
-	_ sdk.Msg = &MsgUpdateMultiStakingParams{}
-)
+var _ sdk.Msg = &MsgUpdateMultiStakingParams{}
 
 // GetSignBytes returns the raw bytes for a MsgUpdateParams message that
 // the expected signer needs to sign.
