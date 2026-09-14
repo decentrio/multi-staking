@@ -159,7 +159,7 @@ func (k msgServer) BeginRedelegate(goCtx context.Context, msg *stakingtypes.MsgB
 	}
 
 	toLockID := types.MultiStakingLockID(msg.DelegatorAddress, msg.ValidatorDstAddress)
-	toLock := k.keeper.GetOrCreateMultiStakingLock(ctx, toLockID)
+	toLock := k.keeper.GetOrCreateMultiStakingLock(ctx, toLockID, msg.Amount.Denom)
 
 	multiStakingCoin := fromLock.MultiStakingCoin(msg.Amount.Amount)
 
@@ -231,7 +231,7 @@ func (k msgServer) CancelUnbondingDelegation(goCtx context.Context, msg *staking
 	cancelUnbondingCoin := sdk.NewCoin(bondDenom, cancelUnbondingAmount)
 
 	lockID := types.MultiStakingLockID(msg.DelegatorAddress, msg.ValidatorAddress)
-	lock := k.keeper.GetOrCreateMultiStakingLock(ctx, lockID)
+	lock := k.keeper.GetOrCreateMultiStakingLock(ctx, lockID, cancelUnlockingCoin.Denom)
 	err = lock.AddCoinToMultiStakingLock(cancelUnlockingCoin)
 	if err != nil {
 		return nil, err

@@ -14,8 +14,9 @@ func TestDelAddrAndValAddrFromLockID(t *testing.T) {
 
 	lockID := multistakingtypes.MultiStakingLockID(del.String(), val.String())
 	lockBytes := lockID.ToBytes()
-	rsDel, rsVal := multistakingtypes.DelAddrAndValAddrFromLockID(lockBytes)
+	rsDel, rsVal, err := multistakingtypes.DelAddrAndValAddrFromLockID(lockBytes)
 
+	require.NoError(t, err)
 	require.Equal(t, del, rsDel)
 	require.Equal(t, val, rsVal)
 }

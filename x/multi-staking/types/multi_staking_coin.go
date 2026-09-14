@@ -45,12 +45,12 @@ func (coin MultiStakingCoin) SafeSub(coinB MultiStakingCoin) (MultiStakingCoin, 
 }
 
 func (coinA MultiStakingCoin) SafeAdd(coinB MultiStakingCoin) (MultiStakingCoin, error) {
-	if coinA.Amount.IsZero() {
-		return coinB, nil
-	}
-
 	if coinA.Denom != coinB.Denom {
 		return MultiStakingCoin{}, fmt.Errorf("denom mismatch")
+	}
+
+	if coinA.Amount.IsZero() {
+		return coinB, nil
 	}
 
 	amountA := coinA.Amount
