@@ -34,8 +34,7 @@ func TestMintCoinPropagatesErrorWithoutTransfer(t *testing.T) {
 	require.False(t, bank.sent)
 }
 
-// Model bank balances and EVM writes in an SDK store so the test exercises
-// CacheContext rollback, including writes made before conversion fails.
+// Model bank balances and EVM writes in an SDK store.
 type payoutBank struct {
 	types.BankKeeper
 	key *storetypes.KVStoreKey
@@ -79,14 +78,14 @@ func (e *conversionKeeper) ConvertCoin(ctx context.Context, _ *erc20types.MsgCon
 	}
 	return nil, e.err
 }
-func TestUnescrowConversionIsolation(t *testing.T) {
+func TestUnescrowConversion(t *testing.T) {
 	for _, tc := range []struct {
 		name                             string
 		pair, conversionFails, bankFails bool
 	}{
 		{name: "native payout"},
 		{name: "successful conversion", pair: true},
-		{name: "reverting conversion retains cosmos payout", pair: true, conversionFails: true},
+		{name: "conversion failure propagates", pair: true, conversionFails: true},
 		{name: "bank failure propagates", pair: true, bankFails: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -106,6 +105,11 @@ func TestUnescrowConversionIsolation(t *testing.T) {
 				require.ErrorIs(t, err, bank.err)
 				require.False(t, converter.called)
 				require.Empty(t, ctx.EventManager().Events())
+				return
+			}
+			if tc.conversionFails {
+				require.ErrorIs(t, err, converter.err)
+				require.True(t, converter.called)
 				return
 			}
 			require.NoError(t, err)
