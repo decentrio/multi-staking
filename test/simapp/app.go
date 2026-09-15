@@ -196,6 +196,9 @@ type SimApp struct {
 	FeeGrantKeeper        feegrantkeeper.Keeper
 	ConsensusParamsKeeper consensusparamkeeper.Keeper
 
+	EVMKeeper   *evmkeeper.Keeper
+	ERC20Keeper erc20keeper.Keeper
+
 	// the module manager
 	mm *module.Manager
 
@@ -363,7 +366,7 @@ func NewSimApp(
 		app.StakingKeeper,
 		FeeMarketKeeper,
 		&app.ConsensusParamsKeeper,
-		Erc20Keeper,
+		&Erc20Keeper, // populated below; EVM calls must not retain a zero-value keeper
 		evmChainID,
 		tracer,
 	)
@@ -378,6 +381,9 @@ func NewSimApp(
 		app.StakingKeeper,
 		nil, // we no need ibc transfer keeper here in test
 	)
+
+	app.EVMKeeper = evmKeeper
+	app.ERC20Keeper = Erc20Keeper
 
 	// why the pointer
 	app.MultiStakingKeeper = *multistakingkeeper.NewKeeper(

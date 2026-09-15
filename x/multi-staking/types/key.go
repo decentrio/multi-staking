@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -53,24 +54,32 @@ func MultiStakingUnlockID(multiStakerAddr string, valAddr string) UnlockID {
 	return UnlockID{MultiStakerAddr: multiStakerAddr, ValAddr: valAddr}
 }
 
-func DelAddrAndValAddrFromLockID(lockID []byte) (multiStakerAddr sdk.AccAddress, valAddr sdk.ValAddress) {
-	lenMultiStakerAddr := lockID[1]
-
-	multiStakerAddr = lockID[2 : lenMultiStakerAddr+2]
-
-	valAddr = lockID[2+lenMultiStakerAddr:]
-
-	return multiStakerAddr, valAddr
+// DelAddrAndValAddrFromLockID decodes a complete store key, including its prefix.
+func DelAddrAndValAddrFromLockID(lockID []byte) (sdk.AccAddress, sdk.ValAddress, error) {
+	return addressesFromID(lockID, MultiStakingLockPrefix[0])
 }
 
-func DelAddrAndValAddrFromUnlockID(unlockID []byte) (multiStakerAddr sdk.AccAddress, valAddr sdk.ValAddress) {
-	lenMultiStakerAddr := unlockID[1]
+// DelAddrAndValAddrFromUnlockID decodes a complete store key, including its prefix.
+func DelAddrAndValAddrFromUnlockID(unlockID []byte) (sdk.AccAddress, sdk.ValAddress, error) {
+	return addressesFromID(unlockID, MultiStakingUnlockPrefix[0])
+}
 
-	multiStakerAddr = unlockID[2 : lenMultiStakerAddr+2]
-
-	valAddr = unlockID[2+lenMultiStakerAddr:]
-
-	return multiStakerAddr, valAddr
+func addressesFromID(id []byte, prefix byte) (sdk.AccAddress, sdk.ValAddress, error) {
+	if len(id) < 2 || id[0] != prefix {
+		return nil, nil, fmt.Errorf("invalid staking key header")
+	}
+	// Convert to int before adding: a byte length can overflow at 254 or 255.
+	end := 2 + int(id[1])
+	if id[1] == 0 || end >= len(id) {
+		return nil, nil, fmt.Errorf("invalid staking key address lengths")
+	}
+	if err := sdk.VerifyAddressFormat(id[2:end]); err != nil {
+		return nil, nil, fmt.Errorf("invalid delegator address: %w", err)
+	}
+	if err := sdk.VerifyAddressFormat(id[end:]); err != nil {
+		return nil, nil, fmt.Errorf("invalid validator address: %w", err)
+	}
+	return sdk.AccAddress(id[2:end]), sdk.ValAddress(id[end:]), nil
 }
 
 // // GetUBDKey creates the key for an unbonding delegation by delegator and validator addr
