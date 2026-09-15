@@ -29,8 +29,11 @@ func (lock MultiStakingLock) MultiStakingCoin(withAmount math.Int) MultiStakingC
 
 func (lock *MultiStakingLock) RemoveCoinFromMultiStakingLock(removedCoin MultiStakingCoin) error {
 	lockedCoinAfter, err := lock.LockedCoin.SafeSub(removedCoin)
+	if err != nil {
+		return err
+	}
 	lock.LockedCoin = lockedCoinAfter
-	return err
+	return nil
 }
 
 func (lock MultiStakingLock) IsEmpty() bool {
@@ -39,8 +42,11 @@ func (lock MultiStakingLock) IsEmpty() bool {
 
 func (multiStakingLock *MultiStakingLock) AddCoinToMultiStakingLock(addedCoin MultiStakingCoin) error {
 	lockedCoinAfter, err := multiStakingLock.LockedCoin.SafeAdd(addedCoin)
+	if err != nil {
+		return err
+	}
 	multiStakingLock.LockedCoin = lockedCoinAfter
-	return err
+	return nil
 }
 
 func (m MultiStakingLock) GetBondWeight() math.LegacyDec {
@@ -52,16 +58,19 @@ func (multiStakingLock MultiStakingLock) LockedAmountToBondAmount(amount math.In
 }
 
 func (fromLock *MultiStakingLock) MoveCoinToLock(toLock *MultiStakingLock, coin MultiStakingCoin) error {
-	// remove coin from lock on source val
-	err := fromLock.RemoveCoinFromMultiStakingLock(coin)
-	if err != nil {
+	// Apply both operations to copies so an error leaves both locks unchanged.
+	from := *fromLock
+	if err := from.RemoveCoinFromMultiStakingLock(coin); err != nil {
 		return err
 	}
-
-	// add coin to destination lock
-	err = toLock.AddCoinToMultiStakingLock(coin)
-	if err != nil {
+	if fromLock == toLock {
+		return nil
+	}
+	to := *toLock
+	if err := to.AddCoinToMultiStakingLock(coin); err != nil {
 		return err
 	}
+	*fromLock = from
+	*toLock = to
 	return nil
 }

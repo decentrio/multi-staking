@@ -4,6 +4,9 @@ import (
 	"context"
 	time "time"
 
+	erc20types "github.com/cosmos/evm/x/erc20/types"
+	"github.com/ethereum/go-ethereum/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -34,4 +37,13 @@ type BankKeeper interface {
 	SendCoinsFromAccountToModule(ctx context.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
 	SendCoinsFromModuleToAccount(ctx context.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 	SendCoins(ctx context.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+}
+
+// ERC20Keeper defines the conversion and registration operations used by this module.
+type ERC20Keeper interface {
+	GetTokenPairID(ctx sdk.Context, token string) []byte
+	GetTokenDenom(ctx sdk.Context, tokenAddress common.Address) (string, error)
+	ConvertCoin(ctx context.Context, msg *erc20types.MsgConvertCoin) (*erc20types.MsgConvertCoinResponse, error)
+	ConvertERC20(ctx context.Context, msg *erc20types.MsgConvertERC20) (*erc20types.MsgConvertERC20Response, error)
+	RegisterERC20(ctx context.Context, msg *erc20types.MsgRegisterERC20) (*erc20types.MsgRegisterERC20Response, error)
 }

@@ -26,7 +26,7 @@ type Keeper struct {
 	accountKeeper         types.AccountKeeper
 	stakingKeeper         *stakingkeeper.Keeper
 	bankKeeper            types.BankKeeper
-	erc20keeper           erc20keeper.Keeper
+	erc20keeper           types.ERC20Keeper
 	authority             string
 	validatorAddressCodec addresscodec.Codec
 	consensusAddressCodec addresscodec.Codec
@@ -49,7 +49,7 @@ func NewKeeper(
 		accountKeeper:         accountKeeper,
 		stakingKeeper:         stakingKeeper,
 		bankKeeper:            bankKeeper,
-		erc20keeper:           erc20keeper,
+		erc20keeper:           &erc20keeper,
 		authority:             authority,
 		validatorAddressCodec: validatorAddressCodec,
 		consensusAddressCodec: consensusAddressCodec,
@@ -94,9 +94,13 @@ func (k Keeper) GetMatureUnbondingDelegations(ctx context.Context) ([]stakingtyp
 			return nil, err
 		}
 
-		unbondingDelegation, err := k.stakingKeeper.GetUnbondingDelegation(ctx, delAddr, valAddr) // ??
-		if err != nil && errors.Is(err, stakingtypes.ErrNoUnbondingDelegation) {
+		unbondingDelegation, err := k.stakingKeeper.GetUnbondingDelegation(ctx, delAddr, valAddr)
+		if errors.Is(err, stakingtypes.ErrNoUnbondingDelegation) {
 			continue
+		}
+
+		if err != nil {
+			return nil, err
 		}
 
 		// If duplicate unbondingDelegation, no append

@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/realio-tech/multi-staking-module/test"
@@ -8,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var (
@@ -64,6 +67,7 @@ func TestAddCoinToMultiStakingLock(t *testing.T) {
 
 			if tc.expErr {
 				require.Error(t, err, tc.name)
+				require.Equal(t, tc.originMSCoin, lockRecord.LockedCoin)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, lockRecord.LockedCoin.Amount, tc.expMSCoin.Amount)
@@ -115,6 +119,7 @@ func TestRemoveCoinFromMultiStakingLock(t *testing.T) {
 
 			if tc.expErr {
 				require.Error(t, err, tc.name)
+				require.Equal(t, tc.originMSCoin, lockRecord.LockedCoin)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, lockRecord.LockedCoin.Amount, tc.expMSCoin.Amount)
@@ -200,6 +205,8 @@ func TestMoveCoinToLock(t *testing.T) {
 
 			if tc.expErr {
 				require.Error(t, err, tc.name)
+				require.Equal(t, tc.fromMSCoin, lockRecord1.LockedCoin)
+				require.Equal(t, tc.toMSCoin, lockRecord2.LockedCoin)
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, lockRecord1.LockedCoin.Amount, tc.expFromMSCoin.Amount)
@@ -212,4 +219,57 @@ func TestMoveCoinToLock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestZeroCoinCannotSwitchDenom(t *testing.T) {
+	empty := types.NewMultiStakingCoin("ario", math.ZeroInt(), math.LegacyOneDec())
+	other := types.NewMultiStakingCoin("arst", math.NewInt(10), math.LegacyOneDec())
+	_, err := empty.SafeAdd(other)
+	require.Error(t, err)
+	lock := types.NewMultiStakingLock(types.LockID{}, empty)
+	require.Error(t, lock.AddCoinToMultiStakingLock(other))
+	require.Equal(t, empty, lock.LockedCoin)
+	same := types.NewMultiStakingCoin("ario", math.NewInt(10), math.LegacyNewDec(2))
+	require.NoError(t, lock.AddCoinToMultiStakingLock(same))
+	require.Equal(t, same, lock.LockedCoin)
+}
+
+func TestKeyDecodersValidateLengths(t *testing.T) {
+	for _, decoder := range []struct {
+		name   string
+		prefix byte
+		decode func([]byte) (sdk.AccAddress, sdk.ValAddress, error)
+	}{
+		{"lock", types.MultiStakingLockPrefix[0], types.DelAddrAndValAddrFromLockID},
+		{"unlock", types.MultiStakingUnlockPrefix[0], types.DelAddrAndValAddrFromUnlockID},
+	} {
+		t.Run(decoder.name, func(t *testing.T) {
+			for _, malformed := range [][]byte{
+				nil, {decoder.prefix}, {decoder.prefix, 20}, {decoder.prefix, 0, 1},
+				{decoder.prefix, 3, 1, 2}, {decoder.prefix, 2, 1, 2},
+				{decoder.prefix, 254, 1}, {decoder.prefix, 255, 1},
+				{0xff, 1, 1, 1},
+			} {
+				del, val, err := decoder.decode(malformed)
+				require.Error(t, err, "%x", malformed)
+				require.Nil(t, del)
+				require.Nil(t, val)
+			}
+			del := bytes.Repeat([]byte{1}, 20)
+			val := bytes.Repeat([]byte{2}, 20)
+			key := append([]byte{decoder.prefix, 20}, del...)
+			key = append(key, val...)
+			gotDel, gotVal, err := decoder.decode(key)
+			require.NoError(t, err)
+			require.Equal(t, sdk.AccAddress(del), gotDel)
+			require.Equal(t, sdk.ValAddress(val), gotVal)
+		})
+	}
+}
+
+func TestMoveCoinToSameLock(t *testing.T) {
+	coin := types.NewMultiStakingCoin("ario", math.NewInt(10), math.LegacyOneDec())
+	lock := types.NewMultiStakingLock(types.LockID{}, coin)
+	require.NoError(t, lock.MoveCoinToLock(&lock, coin.WithAmount(math.NewInt(5))))
+	require.Equal(t, coin, lock.LockedCoin)
 }
