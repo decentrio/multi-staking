@@ -2,7 +2,6 @@ package keeper_test
 
 import (
 	"github.com/realio-tech/multi-staking-module/test"
-	multistakingkeeper "github.com/realio-tech/multi-staking-module/x/multi-staking/keeper"
 	"github.com/realio-tech/multi-staking-module/x/multi-staking/types"
 
 	"cosmossdk.io/math"
@@ -32,62 +31,20 @@ func (suite *KeeperTestSuite) TestSetBondWeight() {
 }
 
 func (suite *KeeperTestSuite) TestSetValidatorMultiStakingCoin() {
-	valA := test.GenValAddress()
-	valB := test.GenValAddress()
-
-	testCases := []struct {
-		name     string
-		malleate func(ctx sdk.Context, msKeeper *multistakingkeeper.Keeper) []string
-		vals     []sdk.ValAddress
-		expPanic bool
-	}{
-		{
-			name: "1 val, 1 denom, success",
-			malleate: func(ctx sdk.Context, msKeeper *multistakingkeeper.Keeper) []string {
-				msKeeper.SetValidatorMultiStakingCoin(ctx, valA, gasDenom)
-				return []string{gasDenom}
-			},
-			vals:     []sdk.ValAddress{valA},
-			expPanic: false,
-		},
-		{
-			name: "2 val, 2 denom, success",
-			malleate: func(ctx sdk.Context, msKeeper *multistakingkeeper.Keeper) []string {
-				msKeeper.SetValidatorMultiStakingCoin(ctx, valA, gasDenom)
-				msKeeper.SetValidatorMultiStakingCoin(ctx, valB, govDenom)
-				return []string{gasDenom, govDenom}
-			},
-			vals:     []sdk.ValAddress{valA, valB},
-			expPanic: false,
-		},
-		{
-			name: "1 val, 2 denom, failed",
-			malleate: func(ctx sdk.Context, msKeeper *multistakingkeeper.Keeper) []string {
-				msKeeper.SetValidatorMultiStakingCoin(ctx, valA, gasDenom)
-				msKeeper.SetValidatorMultiStakingCoin(ctx, valA, govDenom)
-				return []string{gasDenom, govDenom}
-			},
-			vals:     []sdk.ValAddress{valA, valB},
-			expPanic: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		suite.Run(tc.name, func() {
+	for _, initialDenom := range []string{gasDenom, ""} {
+		suite.Run("initial denom="+initialDenom, func() {
 			suite.SetupTest()
+			valA := test.GenValAddress()
+			valB := test.GenValAddress()
 
-			if tc.expPanic {
-				suite.Require().PanicsWithValue("validator multi staking coin already set", func() {
-					tc.malleate(suite.ctx, suite.msKeeper)
-				})
-			} else {
-				inputs := tc.malleate(suite.ctx, suite.msKeeper)
-				for idx, val := range tc.vals {
-					actualDenom := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, val)
-					suite.Require().Equal(inputs[idx], actualDenom)
-				}
+			suite.Require().NoError(suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valA, initialDenom))
+			suite.Require().NoError(suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valB, govDenom))
+			for _, duplicateDenom := range []string{initialDenom, govDenom} {
+				err := suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valA, duplicateDenom)
+				suite.Require().ErrorContains(err, "validator multi staking coin already set")
+				suite.Require().Equal(initialDenom, suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valA))
 			}
+			suite.Require().Equal(govDenom, suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valB))
 		})
 	}
 }
@@ -268,7 +225,7 @@ func (suite *KeeperTestSuite) TestValidatorMultiStakingCoinIterator() {
 
 	for _, record := range sampleRecords {
 		valAcc, _ := sdk.ValAddressFromBech32(record.ValAddr)
-		suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valAcc, record.CoinDenom)
+		suite.Require().NoError(suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valAcc, record.CoinDenom))
 		expRecords[record.ValAddr] = types.ValidatorMultiStakingCoin{
 			ValAddr:   record.ValAddr,
 			CoinDenom: record.CoinDenom,

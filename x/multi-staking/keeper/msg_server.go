@@ -94,7 +94,9 @@ func (k msgServer) CreateValidator(goCtx context.Context, msg *stakingtypes.MsgC
 		Value:             mintedBondCoin, // replace lock coin with bond coin
 	}
 
-	k.keeper.SetValidatorMultiStakingCoin(ctx, sdk.ValAddress(multiStakerAddr), msg.Value.Denom)
+	if err := k.keeper.SetValidatorMultiStakingCoin(ctx, sdk.ValAddress(multiStakerAddr), msg.Value.Denom); err != nil {
+		return nil, err
+	}
 
 	return k.stakingMsgServer.CreateValidator(ctx, &sdkMsg)
 }

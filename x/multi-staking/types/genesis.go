@@ -1,9 +1,12 @@
 package types
 
 import (
+	"fmt"
+
 	"cosmossdk.io/errors"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -21,6 +24,19 @@ func (gs GenesisState) Validate() error {
 	// validate staking genesis
 	if err := staking.ValidateGenesis(&gs.StakingGenesisState); err != nil {
 		return err
+	}
+
+	seenValidators := make(map[string]struct{}, len(gs.ValidatorMultiStakingCoins))
+	for _, coin := range gs.ValidatorMultiStakingCoins {
+		valAddr, err := sdk.ValAddressFromBech32(coin.ValAddr)
+		if err != nil {
+			return fmt.Errorf("invalid validator multi staking coin address %q: %w", coin.ValAddr, err)
+		}
+		key := string(valAddr)
+		if _, exists := seenValidators[key]; exists {
+			return fmt.Errorf("duplicate validator multi staking coin: %s", coin.ValAddr)
+		}
+		seenValidators[key] = struct{}{}
 	}
 
 	// validate locks

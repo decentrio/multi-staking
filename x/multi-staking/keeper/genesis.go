@@ -27,7 +27,9 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) (res []abc
 		if err != nil {
 			panic("error validator address")
 		}
-		k.SetValidatorMultiStakingCoin(ctx, valAddr, valMultiStakingCoin.CoinDenom)
+		if err := k.SetValidatorMultiStakingCoin(ctx, valAddr, valMultiStakingCoin.CoinDenom); err != nil {
+			panic(err)
+		}
 	}
 
 	k.accountKeeper.GetModuleAccount(ctx, types.ModuleName)

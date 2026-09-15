@@ -58,17 +58,18 @@ func (k Keeper) GetValidatorMultiStakingCoin(ctx context.Context, operatorAddr s
 	return string(bz)
 }
 
-func (k Keeper) SetValidatorMultiStakingCoin(ctx context.Context, operatorAddr sdk.ValAddress, bondDenom string) {
-	if k.GetValidatorMultiStakingCoin(ctx, operatorAddr) != "" {
-		panic("validator multi staking coin already set")
-	}
-
+func (k Keeper) SetValidatorMultiStakingCoin(ctx context.Context, operatorAddr sdk.ValAddress, bondDenom string) error {
 	store := k.storeService.OpenKVStore(ctx)
-
-	err := store.Set(types.GetValidatorMultiStakingCoinKey(operatorAddr), []byte(bondDenom))
+	key := types.GetValidatorMultiStakingCoinKey(operatorAddr)
+	exists, err := store.Has(key)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	if exists {
+		return fmt.Errorf("validator multi staking coin already set: %s", operatorAddr)
+	}
+
+	return store.Set(key, []byte(bondDenom))
 }
 
 func (k Keeper) ValidatorMultiStakingCoinIterator(ctx context.Context, cb func(valAddr string, denom string) (stop bool)) {

@@ -65,6 +65,9 @@ func (e *conversionKeeper) GetTokenPairID(sdk.Context, string) []byte {
 	}
 	return nil
 }
+func (e *conversionKeeper) GetTokenPair(sdk.Context, []byte) (erc20types.TokenPair, bool) {
+	return erc20types.TokenPair{}, e.pair
+}
 func (e *conversionKeeper) ConvertCoin(ctx context.Context, _ *erc20types.MsgConvertCoin) (*erc20types.MsgConvertCoinResponse, error) {
 	e.called = true
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
