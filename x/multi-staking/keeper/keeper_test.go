@@ -153,6 +153,46 @@ func (suite *KeeperTestSuite) TestAdjustUnbondAmount() {
 	}
 }
 
+func (suite *KeeperTestSuite) TestAdjustCancelUnbondingAmountByHeight() {
+	delAddr := test.GenAddress()
+	valAddr := test.GenValAddress()
+	ubd := stakingtypes.UnbondingDelegation{
+		DelegatorAddress: delAddr.String(),
+		ValidatorAddress: valAddr.String(),
+		Entries: []stakingtypes.UnbondingDelegationEntry{
+			{CreationHeight: 10, InitialBalance: math.NewInt(100), Balance: math.NewInt(40)},
+			{CreationHeight: 20, InitialBalance: math.NewInt(500), Balance: math.NewInt(500)},
+			{CreationHeight: 10, InitialBalance: math.NewInt(60), Balance: math.NewInt(60)},
+			{CreationHeight: 30, InitialBalance: math.NewInt(20), Balance: math.ZeroInt()},
+		},
+	}
+	suite.Require().NoError(suite.app.StakingKeeper.SetUnbondingDelegation(suite.ctx, ubd))
+
+	for _, tc := range []struct {
+		name                        string
+		height, requested, expected int64
+		wantErr                     bool
+	}{
+		{"missing height", 99, 50, 0, true},
+		{"matching height below balance", 10, 75, 75, false},
+		{"sum only matching entries and cap to remaining balance", 10, 1000, 100, false},
+		{"existing zero balance is not a missing height", 30, 50, 0, false},
+	} {
+		suite.Run(tc.name, func() {
+			amount, err := suite.msKeeper.AdjustCancelUnbondingAmount(suite.ctx, delAddr, valAddr, tc.height, math.NewInt(tc.requested))
+			if tc.wantErr {
+				suite.Require().EqualError(err, "undelegation with creation height 99 not found")
+			} else {
+				suite.Require().NoError(err)
+				suite.Require().Equal(math.NewInt(tc.expected), amount)
+			}
+			after, err := suite.app.StakingKeeper.GetUnbondingDelegation(suite.ctx, delAddr, valAddr)
+			suite.Require().NoError(err)
+			suite.Require().Equal(ubd, after)
+		})
+	}
+}
+
 func (suite *KeeperTestSuite) TestAdjustCancelUnbondAmount() {
 	valPubKey := test.GenPubKey()
 	valAddr := sdk.ValAddress(valPubKey.Address())
