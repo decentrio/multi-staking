@@ -28,10 +28,10 @@ func (suite *KeeperTestSuite) TestInitGenesisDuplicateValidatorCoinWithoutValida
 }
 
 func (suite *KeeperTestSuite) TestImportExportGenesis() {
-	appState, err := suite.app.ExportAppStateAndValidators(false, []string{}) //nolint:staticcheck
+	appState, err := suite.app.ExportAppStateAndValidators(false, []string{})
 	suite.NoError(err)
 
-	encConfig := simapp.MakeEncodingConfig() //nolint:staticcheck
+	encConfig := simapp.MakeEncodingConfig()
 
 	configurator := evmtypes.NewEVMConfigurator()
 	configurator.ResetTestConfig()

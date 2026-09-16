@@ -245,9 +245,14 @@ func TestKeyDecodersValidateLengths(t *testing.T) {
 	} {
 		t.Run(decoder.name, func(t *testing.T) {
 			for _, malformed := range [][]byte{
-				nil, {decoder.prefix}, {decoder.prefix, 20}, {decoder.prefix, 0, 1},
-				{decoder.prefix, 3, 1, 2}, {decoder.prefix, 2, 1, 2},
-				{decoder.prefix, 254, 1}, {decoder.prefix, 255, 1},
+				nil,
+				{decoder.prefix},
+				{decoder.prefix, 20},
+				{decoder.prefix, 0, 1},
+				{decoder.prefix, 3, 1, 2},
+				{decoder.prefix, 2, 1, 2},
+				{decoder.prefix, 254, 1},
+				{decoder.prefix, 255, 1},
 				{0xff, 1, 1, 1},
 			} {
 				del, val, err := decoder.decode(malformed)

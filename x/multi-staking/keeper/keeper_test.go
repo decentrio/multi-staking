@@ -104,7 +104,6 @@ func (suite *KeeperTestSuite) TestAdjustUnbondAmount() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -265,7 +264,6 @@ func (suite *KeeperTestSuite) TestAdjustCancelUnbondAmount() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()

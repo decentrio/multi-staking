@@ -355,7 +355,6 @@ func (suite *KeeperTestSuite) TestEditValidator() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -472,7 +471,6 @@ func (suite *KeeperTestSuite) TestDelegate() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -642,7 +640,6 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -812,7 +809,6 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -969,7 +965,6 @@ func (suite *KeeperTestSuite) TestCancelUnbondingDelegation() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()

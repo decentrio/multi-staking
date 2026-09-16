@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -82,6 +83,14 @@ func addressesFromID(id []byte, prefix byte) (sdk.AccAddress, sdk.ValAddress, er
 	return sdk.AccAddress(id[2:end]), sdk.ValAddress(id[end:]), nil
 }
 
+func addressLengthPrefix(length int) byte {
+	if length > 1<<8-1 {
+		panic("address length exceeds one-byte key encoding")
+	}
+
+	return byte(length)
+}
+
 // // GetUBDKey creates the key for an unbonding delegation by delegator and validator addr
 // // VALUE: multi-staking/MultiStakingUnlock
 // func GetUBDKey(multiStakerAddr sdk.AccAddress, valAddr sdk.ValAddress) []byte {
@@ -98,7 +107,7 @@ func (l LockID) ToBytes() []byte {
 
 	DVPair := make([]byte, 1+lenMultiStakerAddr+len(valAcc))
 
-	DVPair[0] = uint8(lenMultiStakerAddr)
+	DVPair[0] = addressLengthPrefix(lenMultiStakerAddr)
 
 	copy(DVPair[1:], multiStakerAddr[:])
 
@@ -117,7 +126,7 @@ func (l UnlockID) ToBytes() []byte {
 
 	DVPair := make([]byte, 1+lenMultiStakerAddr+len(valAcc))
 
-	DVPair[0] = uint8(lenMultiStakerAddr)
+	DVPair[0] = addressLengthPrefix(lenMultiStakerAddr)
 
 	copy(DVPair[1:], multiStakerAddr[:])
 

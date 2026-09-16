@@ -26,6 +26,7 @@ func (b *failingMintBank) SendCoinsFromModuleToAccount(context.Context, string, 
 	b.sent = true
 	return nil
 }
+
 func TestMintCoinPropagatesErrorWithoutTransfer(t *testing.T) {
 	mintErr := errors.New("mint failed")
 	bank := &failingMintBank{err: mintErr}
@@ -65,9 +66,11 @@ func (e *conversionKeeper) GetTokenPairID(sdk.Context, string) []byte {
 	}
 	return nil
 }
+
 func (e *conversionKeeper) GetTokenPair(sdk.Context, []byte) (erc20types.TokenPair, bool) {
 	return erc20types.TokenPair{}, e.pair
 }
+
 func (e *conversionKeeper) ConvertCoin(ctx context.Context, _ *erc20types.MsgConvertCoin) (*erc20types.MsgConvertCoinResponse, error) {
 	e.called = true
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -81,6 +84,7 @@ func (e *conversionKeeper) ConvertCoin(ctx context.Context, _ *erc20types.MsgCon
 	}
 	return nil, e.err
 }
+
 func TestUnescrowConversion(t *testing.T) {
 	for _, tc := range []struct {
 		name                             string

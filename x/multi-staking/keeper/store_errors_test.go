@@ -5,13 +5,15 @@ import (
 	"errors"
 	"testing"
 
-	corestore "cosmossdk.io/core/store"
 	dbm "github.com/cosmos/cosmos-db"
+	"github.com/realio-tech/multi-staking-module/x/multi-staking/types"
+	"github.com/stretchr/testify/require"
+
+	corestore "cosmossdk.io/core/store"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/realio-tech/multi-staking-module/x/multi-staking/types"
-	"github.com/stretchr/testify/require"
 )
 
 type failingStore struct {

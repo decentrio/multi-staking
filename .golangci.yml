@@ -2,20 +2,12 @@ run:
   tests: true
   timeout: 15m
   sort-results: true
-  skip-files:
-    - server/grpc/gogoreflection/fix_registration.go
-    - "fix_registration.go"
-    - ".*\\.pb\\.go$"
-    - ".*\\.pb\\.gw\\.go$"
-    - ".*\\.pulsar\\.go$"
-    - crypto/keys/secp256k1/internal/*
-
 linters:
   disable-all: true
   enable:
     - dogsled
     - errcheck
-    - exportloopref
+    - copyloopvar
     - gci
     - goconst
     - gocritic
@@ -36,6 +28,13 @@ linters:
     - unused
 
 issues:
+  exclude-files:
+    - server/grpc/gogoreflection/fix_registration.go
+    - "fix_registration.go"
+    - ".*\\.pb\\.go$"
+    - ".*\\.pb\\.gw\\.go$"
+    - ".*\\.pulsar\\.go$"
+    - crypto/keys/secp256k1/internal/*
   exclude-rules:
     - text: "Use of weak random number generator"
       linters:
