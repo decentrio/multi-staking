@@ -28,11 +28,6 @@ func (suite *KeeperTestSuite) TestInitGenesisDuplicateValidatorCoinWithoutValida
 }
 
 func (suite *KeeperTestSuite) TestImportExportGenesis() {
-	appState, err := suite.app.ExportAppStateAndValidators(false, []string{})
-	suite.NoError(err)
-
-	encConfig := simapp.MakeEncodingConfig()
-
 	configurator := evmtypes.NewEVMConfigurator()
 	configurator.ResetTestConfig()
 
@@ -44,10 +39,12 @@ func (suite *KeeperTestSuite) TestImportExportGenesis() {
 		map[int64]bool{},
 		"temp",
 		simapp.FlagPeriodValue,
-		encConfig,
+		simapp.MakeEncodingConfig(),
 		simapp.EmptyAppOptions{},
 	)
 
+	appState, err := suite.app.ExportAppStateAndValidators(false, []string{})
+	suite.Require().NoError(err)
 	_, err = emptyApp.InitChain(
 		&abci.RequestInitChain{
 			Validators:      []abci.ValidatorUpdate{},

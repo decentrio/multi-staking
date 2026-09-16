@@ -90,6 +90,8 @@ func (suite *KeeperTestSuite) TestSetMultiStakingLock() {
 }
 
 func (suite *KeeperTestSuite) TestMultiStakingLockIterator() {
+	suite.SetupTest()
+
 	valA := test.GenValAddress()
 	valB := test.GenValAddress()
 
@@ -115,7 +117,6 @@ func (suite *KeeperTestSuite) TestMultiStakingLockIterator() {
 		),
 	}
 
-	suite.SetupTest()
 	expLocks := make(map[string]types.MultiStakingLock)
 	suite.msKeeper.MultiStakingLockIterator(suite.ctx, func(multiStakingLock types.MultiStakingLock) (stop bool) {
 		mapKey := multiStakingLock.LockID.MultiStakerAddr + multiStakingLock.LockID.ValAddr
@@ -137,6 +138,8 @@ func (suite *KeeperTestSuite) TestMultiStakingLockIterator() {
 }
 
 func (suite *KeeperTestSuite) TestMultiStakingUnlockIterator() {
+	suite.SetupTest()
+
 	valA := test.GenValAddress()
 	valB := test.GenValAddress()
 
@@ -166,7 +169,6 @@ func (suite *KeeperTestSuite) TestMultiStakingUnlockIterator() {
 		),
 	}
 
-	suite.SetupTest()
 	expUnlocks := make(map[string]types.MultiStakingUnlock)
 	suite.msKeeper.MultiStakingUnlockIterator(suite.ctx, func(multiStakingUnlock types.MultiStakingUnlock) (stop bool) {
 		mapKey := multiStakingUnlock.UnlockID.MultiStakerAddr + multiStakingUnlock.UnlockID.ValAddr
@@ -188,6 +190,8 @@ func (suite *KeeperTestSuite) TestMultiStakingUnlockIterator() {
 }
 
 func (suite *KeeperTestSuite) TestValidatorMultiStakingCoinIterator() {
+	suite.SetupTest()
+
 	valA := test.GenValAddress()
 	valB := test.GenValAddress()
 	valC := test.GenValAddress()
@@ -211,8 +215,6 @@ func (suite *KeeperTestSuite) TestValidatorMultiStakingCoinIterator() {
 			CoinDenom: govDenom,
 		},
 	}
-
-	suite.SetupTest()
 
 	expRecords := make(map[string]types.ValidatorMultiStakingCoin)
 	suite.msKeeper.ValidatorMultiStakingCoinIterator(suite.ctx, func(valAddr string, denom string) (stop bool) {
