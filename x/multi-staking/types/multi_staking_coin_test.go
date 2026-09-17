@@ -96,6 +96,24 @@ func TestSafeSub(t *testing.T) {
 		expErr    bool
 	}{
 		{
+			name:    "zero amount",
+			msCoinA: types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(100), math.LegacyOneDec()),
+			msCoinB: types.NewMultiStakingCoin(MultiStakingDenomA, math.ZeroInt(), math.LegacyOneDec()),
+			expErr:  true,
+		},
+		{
+			name:    "negative amount cannot increase balance",
+			msCoinA: types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(100), math.LegacyOneDec()),
+			msCoinB: types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(-1), math.LegacyOneDec()),
+			expErr:  true,
+		},
+		{
+			name:      "subtract entire balance",
+			msCoinA:   types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(100), math.LegacyOneDec()),
+			msCoinB:   types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(100), math.LegacyOneDec()),
+			expMSCoin: types.NewMultiStakingCoin(MultiStakingDenomA, math.ZeroInt(), math.LegacyOneDec()),
+		},
+		{
 			name:      "success",
 			msCoinA:   types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(123456), math.LegacyMustNewDecFromStr("0.3")),
 			msCoinB:   types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(23456), math.LegacyMustNewDecFromStr("0.3")),
@@ -118,16 +136,21 @@ func TestSafeSub(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			before, err := tc.msCoinA.Marshal()
+			require.NoError(t, err)
 			actualMSCoin, err := tc.msCoinA.SafeSub(tc.msCoinB)
 
 			if tc.expErr {
 				require.Error(t, err, tc.name)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tc.expMSCoin.Amount, actualMSCoin.Amount)
+				require.True(t, tc.expMSCoin.Amount.Equal(actualMSCoin.Amount), "expected %s, got %s", tc.expMSCoin.Amount, actualMSCoin.Amount)
 				require.Equal(t, tc.expMSCoin.Denom, actualMSCoin.Denom)
 				require.Equal(t, tc.expMSCoin.BondWeight, actualMSCoin.BondWeight)
 			}
+			after, err := tc.msCoinA.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, before, after, "subtraction must not mutate its input")
 		})
 	}
 }

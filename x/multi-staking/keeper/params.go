@@ -21,11 +21,11 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
 	return nil
 }
 
-// GetParams sets the x/staking module parameters.
+// GetParams gets the x/staking module parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(types.ParamsKey)
-	if err != nil {
+	if err != nil || bz == nil {
 		return params
 	}
 

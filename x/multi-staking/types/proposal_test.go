@@ -3,13 +3,29 @@ package types_test
 import (
 	"testing"
 
+	"github.com/realio-tech/multi-staking-module/test"
 	"github.com/realio-tech/multi-staking-module/x/multi-staking/types"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"cosmossdk.io/math"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	govv1beta1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
+
+func TestRemoveMultiStakingCoinProposalRegistration(t *testing.T) {
+	proposal := types.NewRemoveMultiStakingCoinProposal("Remove coin", "Disable staking for this coin", "ario")
+	require.Equal(t, types.RouterKey, proposal.ProposalRoute())
+	require.Equal(t, "RemoveMultiStakingCoin", proposal.ProposalType())
+	require.True(t, govv1beta1.IsValidProposalType(proposal.ProposalType()))
+	require.NoError(t, proposal.ValidateBasic())
+
+	msg, err := govv1beta1.NewMsgSubmitProposal(proposal, sdk.NewCoins(sdk.NewInt64Coin("stake", 100)), test.GenAddress())
+	require.NoError(t, err)
+	require.NoError(t, msg.GetContent().ValidateBasic())
+	require.Equal(t, "RemoveMultiStakingCoin", msg.GetContent().ProposalType())
+}
 
 type ProposalTestSuite struct {
 	suite.Suite

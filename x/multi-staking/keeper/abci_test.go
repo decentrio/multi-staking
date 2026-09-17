@@ -44,7 +44,6 @@ func (suite *KeeperTestSuite) TestMsUnlockEndBlocker() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			// height 1
 			vals, err := suite.app.StakingKeeper.GetAllValidators(suite.ctx)

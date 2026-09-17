@@ -16,6 +16,37 @@ import (
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 )
 
+func (suite *KeeperTestSuite) TestCreateValidatorPropagatesDuplicateCoinError() {
+	pubKey := test.GenPubKey()
+	delAddr := sdk.AccAddress(pubKey.Address())
+	valAddr := sdk.ValAddress(pubKey.Address())
+	suite.FundAccount(delAddr, sdk.NewCoins(sdk.NewInt64Coin(MultiStakingDenomA, 1000)))
+	suite.msKeeper.SetBondWeight(suite.ctx, MultiStakingDenomA, math.LegacyOneDec())
+	suite.Require().NoError(suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valAddr, MultiStakingDenomB))
+
+	msg := stakingtypes.MsgCreateValidator{
+		Description: stakingtypes.Description{Moniker: "duplicate coin"},
+		Commission: stakingtypes.CommissionRates{
+			Rate:          math.LegacyMustNewDecFromStr("0.05"),
+			MaxRate:       math.LegacyMustNewDecFromStr("0.1"),
+			MaxChangeRate: math.LegacyMustNewDecFromStr("0.05"),
+		},
+		MinSelfDelegation: math.OneInt(),
+		ValidatorAddress:  valAddr.String(),
+		Pubkey:            codectypes.UnsafePackAny(pubKey),
+		Value:             sdk.NewInt64Coin(MultiStakingDenomA, 100),
+	}
+	// SDK transactions discard cached writes when a message returns an error.
+	ctx, _ := suite.ctx.CacheContext()
+	response, err := suite.msgServer.CreateValidator(ctx, &msg)
+	suite.Require().Nil(response)
+	suite.Require().ErrorContains(err, "validator multi staking coin already set")
+	suite.Require().Equal(MultiStakingDenomB, suite.msKeeper.GetValidatorMultiStakingCoin(ctx, valAddr))
+	_, err = suite.app.StakingKeeper.GetValidator(ctx, valAddr)
+	suite.Require().ErrorIs(err, stakingtypes.ErrNoValidatorFound)
+	suite.Require().Equal(sdk.NewInt64Coin(MultiStakingDenomA, 1000), suite.app.BankKeeper.GetBalance(suite.ctx, delAddr, MultiStakingDenomA))
+}
+
 func (suite *KeeperTestSuite) TestCreateValidator() {
 	valPubKey := test.GenPubKey()
 	delAddr := sdk.AccAddress(valPubKey.Address())
@@ -324,7 +355,6 @@ func (suite *KeeperTestSuite) TestEditValidator() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -441,7 +471,6 @@ func (suite *KeeperTestSuite) TestDelegate() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -611,7 +640,6 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -781,7 +809,6 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()
@@ -938,7 +965,6 @@ func (suite *KeeperTestSuite) TestCancelUnbondingDelegation() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
 			newParam := stakingtypes.DefaultParams()

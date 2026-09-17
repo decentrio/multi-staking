@@ -48,7 +48,6 @@ func (suite *KeeperTestSuite) TestAddMultiStakingCoinProposal() {
 			shouldErr: true,
 		},
 	} {
-		tc := tc
 		suite.Run(tc.desc, func() {
 			suite.SetupTest()
 			tc.malleate(tc.proposal)
@@ -128,7 +127,6 @@ func (suite *KeeperTestSuite) TestUpdateBondWeightProposal() {
 			shouldErr: true,
 		},
 	} {
-		tc := tc
 		suite.Run(tc.desc, func() {
 			suite.SetupTest()
 			tc.malleate(tc.proposal)

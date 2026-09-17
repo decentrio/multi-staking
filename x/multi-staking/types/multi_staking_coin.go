@@ -32,6 +32,10 @@ func (coin MultiStakingCoin) WithAmount(amount math.Int) MultiStakingCoin {
 }
 
 func (coin MultiStakingCoin) SafeSub(coinB MultiStakingCoin) (MultiStakingCoin, error) {
+	if !coinB.Amount.IsPositive() {
+		return MultiStakingCoin{}, fmt.Errorf("amount cannot be negative")
+	}
+
 	if coin.Denom != coinB.Denom {
 		return MultiStakingCoin{}, fmt.Errorf("denom mismatch")
 	}

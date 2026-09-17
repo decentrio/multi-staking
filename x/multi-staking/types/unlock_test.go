@@ -136,6 +136,27 @@ func TestAddEntry(t *testing.T) {
 	}
 }
 
+func TestRemoveCoinFromEntryRejectsNonPositiveAmounts(t *testing.T) {
+	for _, amount := range []math.Int{math.ZeroInt(), math.NewInt(-1)} {
+		t.Run(amount.String(), func(t *testing.T) {
+			unlock := types.MultiStakingUnlock{
+				Entries: []types.UnlockEntry{
+					types.NewUnlockEntry(1, types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(100), math.LegacyOneDec())),
+					types.NewUnlockEntry(2, types.NewMultiStakingCoin(MultiStakingDenomA, math.NewInt(200), math.LegacyOneDec())),
+				},
+			}
+			before, err := unlock.Marshal()
+			require.NoError(t, err)
+
+			require.Error(t, unlock.RemoveCoinFromEntry(0, amount))
+
+			after, err := unlock.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, before, after, "rejected removal must leave all entries unchanged")
+		})
+	}
+}
+
 func TestRemoveCoinFromEntry(t *testing.T) {
 	valAddr := test.GenValAddress()
 	delAddr := test.GenAddress()

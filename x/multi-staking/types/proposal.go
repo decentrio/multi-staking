@@ -30,6 +30,7 @@ func init() {
 	govv1beta1.RegisterProposalType(ProposalTypeAddMultiStakingCoin)
 	govv1beta1.RegisterProposalType(ProposalTypeUpdateBondWeight)
 	govv1beta1.RegisterProposalType(ProposalTypeAddMultiStakingEVMCoin)
+	govv1beta1.RegisterProposalType(ProposalTypeRemoveMultiStakingCoin)
 }
 
 // NewAddMultiStakingCoinProposal returns new instance of AddMultiStakingCoinProposal
@@ -182,18 +183,18 @@ func NewRemoveMultiStakingCoinProposal(title, description, denom string) govv1be
 	}
 }
 
-// GetTitle returns the title of a AddMultiStakingCoinProposal
+// GetTitle returns the title of a RemoveMultiStakingCoinProposal
 func (abtp *RemoveMultiStakingCoinProposal) GetTitle() string { return abtp.Title }
 
-// GetDescription returns the description of a AddMultiStakingCoinProposal
+// GetDescription returns the description of a RemoveMultiStakingCoinProposal
 func (abtp *RemoveMultiStakingCoinProposal) GetDescription() string { return abtp.Description }
 
-// ProposalRoute returns router key for a AddMultiStakingCoinProposal
+// ProposalRoute returns router key for a RemoveMultiStakingCoinProposal
 func (*RemoveMultiStakingCoinProposal) ProposalRoute() string { return RouterKey }
 
-// ProposalType returns proposal type for a AddMultiStakingCoinProposal
+// ProposalType returns proposal type for a RemoveMultiStakingCoinProposal
 func (*RemoveMultiStakingCoinProposal) ProposalType() string {
-	return ProposalTypeAddMultiStakingCoin
+	return ProposalTypeRemoveMultiStakingCoin
 }
 
 // ValidateBasic runs basic stateless validity checks

@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"bytes"
 	"context"
 
 	erc20types "github.com/cosmos/evm/x/erc20/types"
@@ -29,21 +28,36 @@ func (k Keeper) EscrowCoinFrom(ctx context.Context, fromAcc sdk.AccAddress, coin
 
 func (k Keeper) UnescrowCoinTo(ctx context.Context, toAcc sdk.AccAddress, coin sdk.Coin) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, toAcc, sdk.NewCoins(coin))
+	coins := sdk.NewCoins(coin)
+	tokenID := k.erc20keeper.GetTokenPairID(sdkCtx, coin.Denom)
+	if len(tokenID) == 0 && erc20types.ValidateErc20Denom(coin.Denom) == nil {
+		// A previous conversion may already have deleted the dead contract's
+		// token pair. Its remaining wrapped coins must not become native payouts.
+		return k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
+	}
+
+	err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, toAcc, coins)
 	if err != nil {
 		return err
 	}
-	// If coin denom is erc20 token pair, convert back to er20 token
-	tokenId := k.erc20keeper.GetTokenPairID(sdkCtx, coin.Denom)
-	if !bytes.Equal(tokenId, []byte{}) {
+	// If the coin has an ERC20 token pair, convert it back to ERC20 tokens.
+	if len(tokenID) != 0 {
 		toAccHex := common.BytesToAddress(toAcc.Bytes()).Hex()
-		_, err := k.erc20keeper.ConvertCoin(ctx, &erc20types.MsgConvertCoin{
+		_, err := k.erc20keeper.ConvertCoin(sdkCtx, &erc20types.MsgConvertCoin{
 			Coin:     coin,
 			Receiver: toAccHex,
 			Sender:   toAcc.String(),
 		})
 		if err != nil {
 			return err
+		}
+		// ConvertCoin returns nil, nil for both a successful conversion and a
+		// selfdestructed contract. Only the latter deletes the pair and leaves
+		// the Cosmos coins unburned in the recipient's account.
+		if _, found := k.erc20keeper.GetTokenPair(sdkCtx, tokenID); !found {
+			if err := k.BurnCoin(sdkCtx, toAcc, coin); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

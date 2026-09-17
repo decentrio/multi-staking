@@ -192,10 +192,16 @@ func (k Keeper) AdjustCancelUnbondingAmount(ctx sdk.Context, delAcc sdk.AccAddre
 	}
 
 	totalUnbondingAmount := math.ZeroInt()
+	found := false
 	for _, entry := range undelegation.Entries {
 		if entry.CreationHeight == creationHeight {
 			totalUnbondingAmount = totalUnbondingAmount.Add(entry.Balance)
+			found = true
 		}
+	}
+
+	if !found {
+		return math.Int{}, fmt.Errorf("undelegation with creation height %v not found", creationHeight)
 	}
 
 	return math.MinInt(totalUnbondingAmount, amount), nil
