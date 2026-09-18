@@ -9,6 +9,64 @@ import (
 	"cosmossdk.io/math"
 )
 
+func TestMultiStakingCoinValidateAmountAndDenom(t *testing.T) {
+	testCases := []struct {
+		name    string
+		denom   string
+		amount  math.Int
+		wantErr string
+	}{
+		{
+			name:   "valid amount and denom",
+			denom:  "ario",
+			amount: math.OneInt(),
+		},
+		{
+			name:    "zero amount",
+			denom:   "ario",
+			amount:  math.ZeroInt(),
+			wantErr: "amount zero or negative",
+		},
+		{
+			name:    "negative amount",
+			denom:   "ario",
+			amount:  math.NewInt(-1),
+			wantErr: "amount zero or negative",
+		},
+		{
+			name:    "empty denom",
+			denom:   "",
+			amount:  math.OneInt(),
+			wantErr: "invalid denom",
+		},
+		{
+			name:    "denom too short",
+			denom:   "ab",
+			amount:  math.OneInt(),
+			wantErr: "invalid denom",
+		},
+		{
+			name:    "denom with invalid characters",
+			denom:   "invalid denom",
+			amount:  math.OneInt(),
+			wantErr: "invalid denom",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			coin := types.NewMultiStakingCoin(tc.denom, tc.amount, math.LegacyOneDec())
+			err := coin.Validate()
+			if tc.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			require.ErrorContains(t, err, tc.wantErr)
+		})
+	}
+}
+
 func TestBondValue(t *testing.T) {
 	testCases := []struct {
 		name         string

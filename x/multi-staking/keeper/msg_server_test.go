@@ -597,6 +597,40 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 			expErr:  false,
 		},
 		{
+			name: "staking redelegation error does not persist locks",
+			malleate: func(ctx sdk.Context, msgServer stakingtypes.MsgServer, msKeeper multistakingkeeper.Keeper) ([]sdk.Coin, error) {
+				amount := sdk.NewInt64Coin(MultiStakingDenomA, 500)
+				_, err := msgServer.Delegate(ctx, stakingtypes.NewMsgDelegate(
+					delAddr.String(), valAddr1.String(), amount,
+				))
+				suite.Require().NoError(err)
+
+				fromID := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr1.String())
+				toID := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr2.String())
+				fromBefore, found := msKeeper.GetMultiStakingLock(ctx, fromID)
+				suite.Require().True(found)
+				_, found = msKeeper.GetMultiStakingLock(ctx, toID)
+				suite.Require().False(found)
+
+				// Keep the multi-staking validator mapping while removing the staking
+				// validator so all local checks pass and staking rejects the operation.
+				ctx.KVStore(suite.app.GetKey(stakingtypes.StoreKey)).Delete(stakingtypes.GetValidatorKey(valAddr2))
+				_, err = msgServer.BeginRedelegate(ctx, stakingtypes.NewMsgBeginRedelegate(
+					delAddr.String(), valAddr1.String(), valAddr2.String(), amount,
+				))
+				suite.Require().Error(err)
+
+				fromAfter, found := msKeeper.GetMultiStakingLock(ctx, fromID)
+				suite.Require().True(found)
+				suite.Require().Equal(fromBefore, fromAfter)
+				_, found = msKeeper.GetMultiStakingLock(ctx, toID)
+				suite.Require().False(found)
+
+				return nil, err
+			},
+			expErr: true,
+		},
+		{
 			name: "not found validator",
 			malleate: func(ctx sdk.Context, msgServer stakingtypes.MsgServer, msKeeper multistakingkeeper.Keeper) ([]sdk.Coin, error) {
 				bondAmount := sdk.NewCoin(MultiStakingDenomA, math.NewInt(500))
@@ -784,6 +818,36 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 			expUnlock: math.NewInt(750),
 			expLock:   math.NewInt(250),
 			expErr:    false,
+		},
+		{
+			name: "staking undelegation error does not persist lock or unlock",
+			malleate: func(ctx sdk.Context, msgServer stakingtypes.MsgServer, msKeeper multistakingkeeper.Keeper) error {
+				lockID := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr.String())
+				unlockID := multistakingtypes.MultiStakingUnlockID(delAddr.String(), valAddr.String())
+				lockBefore, found := msKeeper.GetMultiStakingLock(ctx, lockID)
+				suite.Require().True(found)
+				_, found = msKeeper.GetMultiStakingUnlock(ctx, unlockID)
+				suite.Require().False(found)
+
+				params, err := suite.app.StakingKeeper.GetParams(ctx)
+				suite.Require().NoError(err)
+				params.MaxEntries = 0
+				suite.Require().NoError(suite.app.StakingKeeper.SetParams(ctx, params))
+
+				_, err = msgServer.Undelegate(ctx, stakingtypes.NewMsgUndelegate(
+					delAddr.String(), valAddr.String(), sdk.NewInt64Coin(MultiStakingDenomA, 500),
+				))
+				suite.Require().Error(err)
+
+				lockAfter, found := msKeeper.GetMultiStakingLock(ctx, lockID)
+				suite.Require().True(found)
+				suite.Require().Equal(lockBefore, lockAfter)
+				_, found = msKeeper.GetMultiStakingUnlock(ctx, unlockID)
+				suite.Require().False(found)
+
+				return err
+			},
+			expErr: true,
 		},
 		{
 			name: "not found validator",

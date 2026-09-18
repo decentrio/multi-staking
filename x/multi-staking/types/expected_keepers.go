@@ -26,7 +26,7 @@ type StakingKeeper interface {
 	GetUnbondingDelegation(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (unlock stakingtypes.UnbondingDelegation, found bool)
 	InitGenesis(ctx context.Context, data *stakingtypes.GenesisState) (res []abci.ValidatorUpdate)
 	ExportGenesis(ctx context.Context) *stakingtypes.GenesisState
-	GetParams(ctx context.Context) stakingtypes.Params
+	GetParams(ctx context.Context) (stakingtypes.Params, error)
 }
 
 type BankKeeper interface {

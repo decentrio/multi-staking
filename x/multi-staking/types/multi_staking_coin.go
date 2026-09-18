@@ -12,6 +12,15 @@ func (coin MultiStakingCoin) Validate() error {
 	if !coin.BondWeight.IsPositive() {
 		return fmt.Errorf("weight zero or negative")
 	}
+	if !coin.Amount.IsPositive() {
+		return fmt.Errorf("amount zero or negative")
+	}
+
+	err := sdk.ValidateDenom(coin.Denom)
+	if err != nil {
+		return fmt.Errorf("invalid denom: %s", err.Error())
+	}
+
 	return nil
 }
 
