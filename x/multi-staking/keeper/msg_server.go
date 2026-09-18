@@ -169,8 +169,6 @@ func (k msgServer) BeginRedelegate(goCtx context.Context, msg *stakingtypes.MsgB
 	if err != nil {
 		return nil, err
 	}
-	k.keeper.SetMultiStakingLock(ctx, fromLock)
-	k.keeper.SetMultiStakingLock(ctx, toLock)
 
 	redelegateAmount := multiStakingCoin.BondValue()
 	redelegateAmount, err = k.keeper.AdjustUnbondAmount(ctx, multiStakerAddr, srcValAcc, redelegateAmount)
@@ -191,7 +189,15 @@ func (k msgServer) BeginRedelegate(goCtx context.Context, msg *stakingtypes.MsgB
 		Amount:              bondCoin, // replace lockCoin with bondCoin
 	}
 
-	return k.stakingMsgServer.BeginRedelegate(ctx, sdkMsg)
+	res, err := k.stakingMsgServer.BeginRedelegate(ctx, sdkMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	k.keeper.SetMultiStakingLock(ctx, fromLock)
+	k.keeper.SetMultiStakingLock(ctx, toLock)
+
+	return res, nil
 }
 
 // Undelegate defines a method for performing an undelegation from a delegate and a validator
