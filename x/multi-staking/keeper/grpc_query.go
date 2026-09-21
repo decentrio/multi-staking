@@ -76,7 +76,10 @@ func (k queryServer) BondWeight(c context.Context, req *types.QueryBondWeightReq
 
 	ctx := sdk.UnwrapSDKContext(c)
 
-	weight, found := k.Keeper.GetBondWeight(ctx, req.Denom)
+	weight, found, err := k.Keeper.GetBondWeight(ctx, req.Denom)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
 	return &types.QueryBondWeightResponse{
 		Weight: weight,
@@ -93,7 +96,10 @@ func (k queryServer) MultiStakingLock(c context.Context, req *types.QueryMultiSt
 	ctx := sdk.UnwrapSDKContext(c)
 
 	lockId := types.MultiStakingLockID(req.MultiStakerAddress, req.ValidatorAddress)
-	lock, found := k.Keeper.GetMultiStakingLock(ctx, lockId)
+	lock, found, err := k.Keeper.GetMultiStakingLock(ctx, lockId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
 	return &types.QueryMultiStakingLockResponse{
 		Lock:  &lock,
@@ -138,7 +144,10 @@ func (k queryServer) MultiStakingUnlock(c context.Context, req *types.QueryMulti
 	ctx := sdk.UnwrapSDKContext(c)
 
 	unlockId := types.MultiStakingUnlockID(req.MultiStakerAddress, req.ValidatorAddress)
-	unlock, found := k.Keeper.GetMultiStakingUnlock(ctx, unlockId)
+	unlock, found, err := k.Keeper.GetMultiStakingUnlock(ctx, unlockId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
 	return &types.QueryMultiStakingUnlockResponse{
 		Unlock: &unlock,
@@ -186,7 +195,10 @@ func (k queryServer) ValidatorMultiStakingCoin(c context.Context, req *types.Que
 		return nil, status.Error(codes.InvalidArgument, "invalid validator address")
 	}
 
-	denom := k.Keeper.GetValidatorMultiStakingCoin(ctx, valAcc)
+	denom, _, err := k.Keeper.GetValidatorMultiStakingCoin(ctx, valAcc)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
 	return &types.QueryValidatorMultiStakingCoinResponse{
 		Denom: denom,
@@ -216,7 +228,10 @@ func (k queryServer) Validators(c context.Context, req *types.QueryValidatorsReq
 			return nil, status.Error(codes.InvalidArgument, "invalid validator address")
 		}
 
-		denom := k.Keeper.GetValidatorMultiStakingCoin(ctx, valAcc)
+		denom, _, err := k.Keeper.GetValidatorMultiStakingCoin(ctx, valAcc)
+		if err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 		valInfo := types.ValidatorInfo{
 			OperatorAddress:   val.OperatorAddress,
 			ConsensusPubkey:   val.ConsensusPubkey,
@@ -257,7 +272,10 @@ func (k queryServer) Validator(c context.Context, req *types.QueryValidatorReque
 		return nil, status.Errorf(codes.NotFound, "validator %s not found", req.ValidatorAddr)
 	}
 
-	denom := k.Keeper.GetValidatorMultiStakingCoin(ctx, valAddr)
+	denom, _, err := k.Keeper.GetValidatorMultiStakingCoin(ctx, valAddr)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 	valInfo := types.ValidatorInfo{
 		OperatorAddress:   validator.OperatorAddress,
 		ConsensusPubkey:   validator.ConsensusPubkey,

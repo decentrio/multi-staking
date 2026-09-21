@@ -23,8 +23,12 @@ func (suite *KeeperTestSuite) TestSetBondWeight() {
 	suite.msKeeper.SetBondWeight(suite.ctx, gasDenom, gasWeight)
 	suite.msKeeper.SetBondWeight(suite.ctx, govDenom, govWeight)
 
-	expectedGasWeight, _ := suite.msKeeper.GetBondWeight(suite.ctx, gasDenom)
-	expectedGovWeight, _ := suite.msKeeper.GetBondWeight(suite.ctx, govDenom)
+	expectedGasWeight, found, err := suite.msKeeper.GetBondWeight(suite.ctx, gasDenom)
+	suite.Require().NoError(err)
+	suite.Require().True(found)
+	expectedGovWeight, found, err := suite.msKeeper.GetBondWeight(suite.ctx, govDenom)
+	suite.Require().NoError(err)
+	suite.Require().True(found)
 
 	suite.Equal(gasWeight, expectedGasWeight)
 	suite.Equal(govWeight, expectedGovWeight)
@@ -42,9 +46,15 @@ func (suite *KeeperTestSuite) TestSetValidatorMultiStakingCoin() {
 			for _, duplicateDenom := range []string{initialDenom, govDenom} {
 				err := suite.msKeeper.SetValidatorMultiStakingCoin(suite.ctx, valA, duplicateDenom)
 				suite.Require().ErrorContains(err, "validator multi staking coin already set")
-				suite.Require().Equal(initialDenom, suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valA))
+				denom, found, getErr := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valA)
+				suite.Require().NoError(getErr)
+				suite.Require().True(found)
+				suite.Require().Equal(initialDenom, denom)
 			}
-			suite.Require().Equal(govDenom, suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valB))
+			denom, found, err := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valB)
+			suite.Require().NoError(err)
+			suite.Require().True(found)
+			suite.Require().Equal(govDenom, denom)
 		})
 	}
 }
@@ -82,7 +92,8 @@ func (suite *KeeperTestSuite) TestSetMultiStakingLock() {
 	for _, tc := range testCases {
 		if !tc.expError {
 			tc.malleate()
-			msLock, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lock.LockID)
+			msLock, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lock.LockID)
+			suite.Require().NoError(err)
 			suite.Require().True(found)
 			suite.Require().Equal(lock, msLock)
 		}

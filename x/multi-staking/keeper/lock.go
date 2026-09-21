@@ -14,12 +14,15 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-func (k Keeper) GetOrCreateMultiStakingLock(ctx context.Context, lockID types.LockID, denom string) types.MultiStakingLock {
-	multiStakingLock, found := k.GetMultiStakingLock(ctx, lockID)
+func (k Keeper) GetOrCreateMultiStakingLock(ctx context.Context, lockID types.LockID, denom string) (types.MultiStakingLock, error) {
+	multiStakingLock, found, err := k.GetMultiStakingLock(ctx, lockID)
+	if err != nil {
+		return types.MultiStakingLock{}, err
+	}
 	if !found {
 		multiStakingLock = types.NewMultiStakingLock(lockID, types.MultiStakingCoin{Denom: denom, Amount: math.ZeroInt()})
 	}
-	return multiStakingLock
+	return multiStakingLock, nil
 }
 
 func (k Keeper) EscrowCoinFrom(ctx context.Context, fromAcc sdk.AccAddress, coin sdk.Coin) error {
@@ -86,7 +89,10 @@ func (k Keeper) LockCoinAndMintBondCoin(
 	}
 
 	// get multistaking coin's bond weight
-	bondWeight, isMultiStakingCoin := k.GetBondWeight(ctx, coin.Denom)
+	bondWeight, isMultiStakingCoin, err := k.GetBondWeight(ctx, coin.Denom)
+	if err != nil {
+		return sdk.Coin{}, err
+	}
 	if !isMultiStakingCoin {
 		return sdk.Coin{}, errors.Wrapf(
 			sdkerrors.ErrInvalidRequest, "invalid coin denomination: got %s", coin.Denom,
@@ -95,7 +101,10 @@ func (k Keeper) LockCoinAndMintBondCoin(
 
 	// update multistaking lock
 	multiStakingCoin := types.NewMultiStakingCoin(coin.Denom, coin.Amount, bondWeight)
-	lock := k.GetOrCreateMultiStakingLock(ctx, lockID, coin.Denom)
+	lock, err := k.GetOrCreateMultiStakingLock(ctx, lockID, coin.Denom)
+	if err != nil {
+		return sdk.Coin{}, err
+	}
 	err = lock.AddCoinToMultiStakingLock(multiStakingCoin)
 	if err != nil {
 		return sdk.Coin{}, err

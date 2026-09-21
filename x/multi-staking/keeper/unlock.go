@@ -11,11 +11,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (k Keeper) GetUnlockEntryAtCreationHeight(ctx context.Context, unlockID types.UnlockID, creationHeight int64) (types.UnlockEntry, bool) {
+func (k Keeper) GetUnlockEntryAtCreationHeight(ctx context.Context, unlockID types.UnlockID, creationHeight int64) (types.UnlockEntry, bool, error) {
 	// get unbonded record
-	unlock, found := k.GetMultiStakingUnlock(ctx, unlockID)
+	unlock, found, err := k.GetMultiStakingUnlock(ctx, unlockID)
+	if err != nil {
+		return types.UnlockEntry{}, false, err
+	}
 	if !found {
-		return types.UnlockEntry{}, false
+		return types.UnlockEntry{}, false, nil
 	}
 	var (
 		unlockEntry      types.UnlockEntry
@@ -30,10 +33,10 @@ func (k Keeper) GetUnlockEntryAtCreationHeight(ctx context.Context, unlockID typ
 		}
 	}
 	if !foundUnlockEntry {
-		return types.UnlockEntry{}, false
+		return types.UnlockEntry{}, false, nil
 	}
 
-	return unlockEntry, foundUnlockEntry
+	return unlockEntry, foundUnlockEntry, nil
 }
 
 // SetMultiStakingUnlockEntry adds an entry to the unbonding delegation at
@@ -41,9 +44,12 @@ func (k Keeper) GetUnlockEntryAtCreationHeight(ctx context.Context, unlockID typ
 func (k Keeper) SetMultiStakingUnlockEntry(
 	ctx context.Context, unlockID types.UnlockID,
 	multistakingCoin types.MultiStakingCoin,
-) types.MultiStakingUnlock {
+) (types.MultiStakingUnlock, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	unlock, found := k.GetMultiStakingUnlock(ctx, unlockID)
+	unlock, found, err := k.GetMultiStakingUnlock(ctx, unlockID)
+	if err != nil {
+		return types.MultiStakingUnlock{}, err
+	}
 	if found {
 		unlock.AddEntry(sdkCtx.BlockHeight(), multistakingCoin)
 	} else {
@@ -51,14 +57,17 @@ func (k Keeper) SetMultiStakingUnlockEntry(
 	}
 
 	k.SetMultiStakingUnlock(ctx, unlock)
-	return unlock
+	return unlock, nil
 }
 
 func (k Keeper) DeleteUnlockEntryAtCreationHeight(
 	ctx context.Context, unlockID types.UnlockID,
 	creationHeight int64,
 ) error {
-	unlock, found := k.GetMultiStakingUnlock(ctx, unlockID)
+	unlock, found, err := k.GetMultiStakingUnlock(ctx, unlockID)
+	if err != nil {
+		return err
+	}
 	if found {
 		unlock.RemoveEntryAtCreationHeight(creationHeight)
 	} else {
@@ -78,7 +87,10 @@ func (k Keeper) DecreaseUnlockEntryAmount(
 	ctx context.Context, unlockID types.UnlockID,
 	amount math.Int, creationHeight int64,
 ) (types.MultiStakingCoin, error) {
-	unlockRecord, found := k.GetMultiStakingUnlock(ctx, unlockID)
+	unlockRecord, found, err := k.GetMultiStakingUnlock(ctx, unlockID)
+	if err != nil {
+		return types.MultiStakingCoin{}, err
+	}
 	if !found {
 		return types.MultiStakingCoin{}, fmt.Errorf("not found unlock recored")
 	}
@@ -90,7 +102,7 @@ func (k Keeper) DecreaseUnlockEntryAmount(
 	}
 
 	unlockEntry := unlockRecord.Entries[unlockEntryIndex]
-	err := unlockRecord.RemoveCoinFromEntry(unlockEntryIndex, amount)
+	err = unlockRecord.RemoveCoinFromEntry(unlockEntryIndex, amount)
 	if err != nil {
 		return types.MultiStakingCoin{}, err
 	}

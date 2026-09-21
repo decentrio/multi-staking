@@ -85,3 +85,112 @@ func TestGetParamsStoreError(t *testing.T) {
 	require.Equal(t, types.Params{}, params)
 	require.False(t, store.setCalled)
 }
+
+func TestStoreGettersPropagateReadErrors(t *testing.T) {
+	injectedErr := errors.New("read unavailable")
+	store := &failingStore{getErr: injectedErr}
+	k := Keeper{
+		storeService: testStoreService{store},
+		cdc:          codec.NewProtoCodec(codectypes.NewInterfaceRegistry()),
+	}
+	delAddr := sdk.AccAddress(make([]byte, 20))
+	valAddr := sdk.ValAddress(make([]byte, 20))
+	lockID := types.MultiStakingLockID(delAddr.String(), valAddr.String())
+	unlockID := types.MultiStakingUnlockID(delAddr.String(), valAddr.String())
+
+	tests := []struct {
+		name string
+		get  func() (bool, error)
+	}{
+		{
+			name: "bond weight",
+			get: func() (bool, error) {
+				_, found, err := k.GetBondWeight(context.Background(), "ario")
+				return found, err
+			},
+		},
+		{
+			name: "validator multi staking coin",
+			get: func() (bool, error) {
+				_, found, err := k.GetValidatorMultiStakingCoin(context.Background(), valAddr)
+				return found, err
+			},
+		},
+		{
+			name: "multi staking lock",
+			get: func() (bool, error) {
+				_, found, err := k.GetMultiStakingLock(context.Background(), lockID)
+				return found, err
+			},
+		},
+		{
+			name: "multi staking unlock",
+			get: func() (bool, error) {
+				_, found, err := k.GetMultiStakingUnlock(context.Background(), unlockID)
+				return found, err
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			found, err := tc.get()
+			require.ErrorIs(t, err, injectedErr)
+			require.False(t, found)
+		})
+	}
+}
+
+func TestStoreGettersReturnDecodeErrors(t *testing.T) {
+	db := dbm.NewMemDB()
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	k := Keeper{
+		storeService: testStoreService{db},
+		cdc:          codec.NewProtoCodec(codectypes.NewInterfaceRegistry()),
+	}
+	delAddr := sdk.AccAddress(make([]byte, 20))
+	valAddr := sdk.ValAddress(make([]byte, 20))
+	lockID := types.MultiStakingLockID(delAddr.String(), valAddr.String())
+	unlockID := types.MultiStakingUnlockID(delAddr.String(), valAddr.String())
+
+	tests := []struct {
+		name string
+		key  []byte
+		get  func() (bool, error)
+	}{
+		{
+			name: "bond weight",
+			key:  types.GetBondWeightKey("ario"),
+			get: func() (bool, error) {
+				_, found, err := k.GetBondWeight(context.Background(), "ario")
+				return found, err
+			},
+		},
+		{
+			name: "multi staking lock",
+			key:  lockID.ToBytes(),
+			get: func() (bool, error) {
+				_, found, err := k.GetMultiStakingLock(context.Background(), lockID)
+				return found, err
+			},
+		},
+		{
+			name: "multi staking unlock",
+			key:  unlockID.ToBytes(),
+			get: func() (bool, error) {
+				_, found, err := k.GetMultiStakingUnlock(context.Background(), unlockID)
+				return found, err
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, db.Set(tc.key, []byte{0xff}))
+			found, err := tc.get()
+			require.Error(t, err)
+			require.False(t, found)
+			require.NoError(t, db.Delete(tc.key))
+		})
+	}
+}

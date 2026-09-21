@@ -14,19 +14,22 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (k Keeper) GetBondWeight(ctx context.Context, tokenDenom string) (math.LegacyDec, bool) {
+func (k Keeper) GetBondWeight(ctx context.Context, tokenDenom string) (math.LegacyDec, bool, error) {
 	store := k.storeService.OpenKVStore(ctx)
-	bz, _ := store.Get(types.GetBondWeightKey(tokenDenom))
+	bz, err := store.Get(types.GetBondWeightKey(tokenDenom))
+	if err != nil {
+		return math.LegacyDec{}, false, fmt.Errorf("get bond weight for %q: %w", tokenDenom, err)
+	}
 	if bz == nil {
-		return math.LegacyDec{}, false
+		return math.LegacyDec{}, false, nil
 	}
 
 	bondCoinWeight := &math.LegacyDec{}
-	err := bondCoinWeight.Unmarshal(bz)
+	err = bondCoinWeight.Unmarshal(bz)
 	if err != nil {
-		panic(fmt.Errorf("unable to unmarshal bond coin weight %v", err))
+		return math.LegacyDec{}, false, fmt.Errorf("unable to unmarshal bond coin weight: %w", err)
 	}
-	return *bondCoinWeight, true
+	return *bondCoinWeight, true, nil
 }
 
 func (k Keeper) SetBondWeight(ctx context.Context, tokenDenom string, tokenWeight math.LegacyDec) {
@@ -51,11 +54,17 @@ func (k Keeper) RemoveBondWeight(ctx context.Context, tokenDenom string) {
 	}
 }
 
-func (k Keeper) GetValidatorMultiStakingCoin(ctx context.Context, operatorAddr sdk.ValAddress) string {
+func (k Keeper) GetValidatorMultiStakingCoin(ctx context.Context, operatorAddr sdk.ValAddress) (string, bool, error) {
 	store := k.storeService.OpenKVStore(ctx)
-	bz, _ := store.Get(types.GetValidatorMultiStakingCoinKey(operatorAddr))
+	bz, err := store.Get(types.GetValidatorMultiStakingCoinKey(operatorAddr))
+	if err != nil {
+		return "", false, fmt.Errorf("get multi-staking coin for validator %s: %w", operatorAddr, err)
+	}
+	if bz == nil {
+		return "", false, nil
+	}
 
-	return string(bz)
+	return string(bz), true, nil
 }
 
 func (k Keeper) SetValidatorMultiStakingCoin(ctx context.Context, operatorAddr sdk.ValAddress, bondDenom string) error {
@@ -87,18 +96,23 @@ func (k Keeper) ValidatorMultiStakingCoinIterator(ctx context.Context, cb func(v
 	}
 }
 
-func (k Keeper) GetMultiStakingLock(ctx context.Context, multiStakingLockID types.LockID) (types.MultiStakingLock, bool) {
+func (k Keeper) GetMultiStakingLock(ctx context.Context, multiStakingLockID types.LockID) (types.MultiStakingLock, bool, error) {
 	store := k.storeService.OpenKVStore(ctx)
 
-	bz, _ := store.Get(multiStakingLockID.ToBytes())
+	bz, err := store.Get(multiStakingLockID.ToBytes())
+	if err != nil {
+		return types.MultiStakingLock{}, false, fmt.Errorf("get multi-staking lock: %w", err)
+	}
 
 	if bz == nil {
-		return types.MultiStakingLock{}, false
+		return types.MultiStakingLock{}, false, nil
 	}
 
 	multiStakingLock := types.MultiStakingLock{}
-	k.cdc.MustUnmarshal(bz, &multiStakingLock)
-	return multiStakingLock, true
+	if err := k.cdc.Unmarshal(bz, &multiStakingLock); err != nil {
+		return types.MultiStakingLock{}, false, fmt.Errorf("unmarshal multi-staking lock: %w", err)
+	}
+	return multiStakingLock, true, nil
 }
 
 func (k Keeper) SetMultiStakingLock(ctx context.Context, multiStakingLock types.MultiStakingLock) {
@@ -175,18 +189,23 @@ func (k Keeper) BondWeightIterator(ctx context.Context, cb func(denom string, bo
 	}
 }
 
-func (k Keeper) GetMultiStakingUnlock(ctx context.Context, multiStakingUnlockID types.UnlockID) (unlock types.MultiStakingUnlock, found bool) {
+func (k Keeper) GetMultiStakingUnlock(ctx context.Context, multiStakingUnlockID types.UnlockID) (unlock types.MultiStakingUnlock, found bool, err error) {
 	store := k.storeService.OpenKVStore(ctx)
-	value, _ := store.Get(multiStakingUnlockID.ToBytes())
+	value, err := store.Get(multiStakingUnlockID.ToBytes())
+	if err != nil {
+		return unlock, false, fmt.Errorf("get multi-staking unlock: %w", err)
+	}
 
 	if value == nil {
-		return unlock, false
+		return unlock, false, nil
 	}
 
 	unlock = types.MultiStakingUnlock{}
-	k.cdc.MustUnmarshal(value, &unlock)
+	if err := k.cdc.Unmarshal(value, &unlock); err != nil {
+		return types.MultiStakingUnlock{}, false, fmt.Errorf("unmarshal multi-staking unlock: %w", err)
+	}
 
-	return unlock, true
+	return unlock, true, nil
 }
 
 // SetMultiStakingUnlock sets the unbonding delegation and associated index.

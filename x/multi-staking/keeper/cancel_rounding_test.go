@@ -103,14 +103,16 @@ func (suite *KeeperTestSuite) TestCancelUnbondingKeepsEntriesInSync() {
 			suite.Require().NoError(err)
 
 			unlockID := multistakingtypes.MultiStakingUnlockID(staker.String(), valAddr.String())
-			unlock, found := suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+			unlock, found, err := suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+			suite.Require().NoError(err)
 			if tc.expUnlock == 0 {
 				suite.Require().False(found, "unlock entry would never mature")
 			} else {
 				suite.Require().True(found)
 				suite.Require().Equal(math.NewInt(tc.expUnlock), unlock.Entries[0].UnlockingCoin.Amount)
 			}
-			lock, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, multistakingtypes.MultiStakingLockID(staker.String(), valAddr.String()))
+			lock, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, multistakingtypes.MultiStakingLockID(staker.String(), valAddr.String()))
+			suite.Require().NoError(err)
 			suite.Require().True(found)
 			suite.Require().Equal(math.NewInt(tc.expLock), lock.LockedCoin.Amount)
 
@@ -121,7 +123,8 @@ func (suite *KeeperTestSuite) TestCancelUnbondingKeepsEntriesInSync() {
 			})
 			suite.Require().NoError(err)
 
-			_, found = suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+			_, found, err = suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+			suite.Require().NoError(err)
 			suite.Require().False(found, "unlock entry must be settled or removed")
 			suite.Require().Equal(math.NewInt(tc.expMatureBal), suite.app.BankKeeper.GetBalance(suite.ctx, staker, denom).Amount)
 		})
@@ -135,7 +138,9 @@ func (suite *KeeperTestSuite) TestCancelUnbondingMoreThanUnlockEntryFails() {
 	val := vals[0]
 	operatorAddr, err := sdk.ValAddressFromBech32(val.OperatorAddress)
 	suite.Require().NoError(err)
-	denom := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, operatorAddr)
+	denom, found, err := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, operatorAddr)
+	suite.Require().NoError(err)
+	suite.Require().True(found)
 
 	coin := sdk.NewCoin(denom, math.NewInt(1000))
 	staker := suite.CreateAndFundAccount(sdk.NewCoins(coin))

@@ -154,8 +154,12 @@ func (k Keeper) BurnCoin(ctx context.Context, accAddr sdk.AccAddress, coin sdk.C
 	return nil
 }
 
-func (k Keeper) isValMultiStakingCoin(ctx sdk.Context, valAcc sdk.ValAddress, lockedCoin sdk.Coin) bool {
-	return lockedCoin.Denom == k.GetValidatorMultiStakingCoin(ctx, valAcc)
+func (k Keeper) isValMultiStakingCoin(ctx sdk.Context, valAcc sdk.ValAddress, lockedCoin sdk.Coin) (bool, error) {
+	denom, found, err := k.GetValidatorMultiStakingCoin(ctx, valAcc)
+	if err != nil {
+		return false, err
+	}
+	return found && lockedCoin.Denom == denom, nil
 }
 
 func (k Keeper) AdjustUnbondAmount(ctx sdk.Context, delAcc sdk.AccAddress, valAcc sdk.ValAddress, amount math.Int) (adjustedAmount math.Int, err error) {
@@ -213,12 +217,19 @@ func (k Keeper) Undelegate(ctx sdk.Context, msg *stakingtypes.MsgUndelegate) (*s
 		return nil, err
 	}
 
-	if !k.isValMultiStakingCoin(ctx, valAcc, msg.Amount) {
+	isMultiStakingCoin, err := k.isValMultiStakingCoin(ctx, valAcc, msg.Amount)
+	if err != nil {
+		return nil, err
+	}
+	if !isMultiStakingCoin {
 		return nil, fmt.Errorf("not allowed coin")
 	}
 
 	lockID := types.MultiStakingLockID(msg.DelegatorAddress, msg.ValidatorAddress)
-	lock, found := k.GetMultiStakingLock(ctx, lockID)
+	lock, found, err := k.GetMultiStakingLock(ctx, lockID)
+	if err != nil {
+		return nil, err
+	}
 	if !found {
 		return nil, fmt.Errorf("can't find multi staking lock")
 	}
@@ -259,7 +270,10 @@ func (k Keeper) Undelegate(ctx sdk.Context, msg *stakingtypes.MsgUndelegate) (*s
 	}
 
 	k.SetMultiStakingLock(ctx, lock)
-	k.SetMultiStakingUnlockEntry(ctx, types.MultiStakingUnlockID(msg.DelegatorAddress, msg.ValidatorAddress), multiStakingCoin)
+	_, err = k.SetMultiStakingUnlockEntry(ctx, types.MultiStakingUnlockID(msg.DelegatorAddress, msg.ValidatorAddress), multiStakingCoin)
+	if err != nil {
+		return nil, err
+	}
 
 	return res, nil
 }

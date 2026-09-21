@@ -24,7 +24,10 @@ func (suite *KeeperTestSuite) TestInitGenesisDuplicateValidatorCoinWithoutValida
 	suite.Require().PanicsWithError("validator multi staking coin already set: "+valAddr.String(), func() {
 		suite.msKeeper.InitGenesis(suite.ctx, *genesis)
 	})
-	suite.Require().Equal("ario", suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valAddr))
+	denom, found, err := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, valAddr)
+	suite.Require().NoError(err)
+	suite.Require().True(found)
+	suite.Require().Equal("ario", denom)
 }
 
 func (suite *KeeperTestSuite) TestImportExportGenesis() {
