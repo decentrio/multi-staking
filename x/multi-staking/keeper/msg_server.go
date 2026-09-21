@@ -222,16 +222,46 @@ func (k msgServer) CancelUnbondingDelegation(goCtx context.Context, msg *staking
 	}
 
 	unlockID := types.MultiStakingUnlockID(msg.DelegatorAddress, msg.ValidatorAddress)
-	cancelUnlockingCoin, err := k.keeper.DecreaseUnlockEntryAmount(ctx, unlockID, msg.Amount.Amount, msg.CreationHeight)
-	if err != nil {
-		return nil, err
+	unlockEntry, found := k.keeper.GetUnlockEntryAtCreationHeight(ctx, unlockID, msg.CreationHeight)
+	if !found {
+		return nil, fmt.Errorf("unbonding delegation entry is not found at block height %d", msg.CreationHeight)
+	}
+	if msg.Amount.Amount.GT(unlockEntry.UnlockingCoin.Amount) {
+		return nil, fmt.Errorf("cancel amount is greater than the unlocking entry amount")
 	}
 
-	cancelUnbondingAmount := cancelUnlockingCoin.BondValue()
+	// Derive the bond amount first, then the lock amount that this bond amount
+	// actually backs. Truncation happens in both directions, so the unlock entry
+	// must shrink by the (rounded-down) backed amount rather than by msg.Amount.
+	// Otherwise the staking entry keeps more bond than the unlock entry can pay
+	// out and BurnUnbondedCoinAndUnlockedMultiStakingCoin fails at maturity.
+	cancelUnbondingAmount := unlockEntry.UnlockAmountToUnbondAmount(msg.Amount.Amount)
 	cancelUnbondingAmount, err = k.keeper.AdjustCancelUnbondingAmount(ctx, delAcc, valAcc, msg.CreationHeight, cancelUnbondingAmount)
 	if err != nil {
 		return nil, err
 	}
+	if !cancelUnbondingAmount.IsPositive() {
+		return nil, fmt.Errorf("cancel amount is too small to be converted to bond amount")
+	}
+	cancelUnlockAmount := unlockEntry.UnbondAmountToUnlockAmount(cancelUnbondingAmount)
+
+	// When the whole staking entry is cancelled it will never mature, so nothing
+	// would ever pay out what is left in the unlock entry (rounding dust or the
+	// part lost to slashing). Return all of it to the lock, where it is settled
+	// on the next undelegation, instead of leaving an entry that never matures.
+	stakingEntry, _ := k.keeper.GetUnbondingEntryAtCreationHeight(ctx, delAcc, valAcc, msg.CreationHeight)
+	if cancelUnbondingAmount.Equal(stakingEntry.Balance) {
+		cancelUnlockAmount = unlockEntry.UnlockingCoin.Amount
+	}
+	if !cancelUnlockAmount.IsPositive() {
+		return nil, fmt.Errorf("cancel amount is too small to be converted to bond amount")
+	}
+
+	cancelUnlockingCoin, err := k.keeper.DecreaseUnlockEntryAmount(ctx, unlockID, cancelUnlockAmount, msg.CreationHeight)
+	if err != nil {
+		return nil, err
+	}
+
 	bondDenom, err := k.keeper.stakingKeeper.BondDenom(ctx)
 	if err != nil {
 		return nil, err
