@@ -228,7 +228,6 @@ func (k Keeper) Undelegate(ctx sdk.Context, msg *stakingtypes.MsgUndelegate) (*s
 	if err != nil {
 		return nil, err
 	}
-	k.SetMultiStakingLock(ctx, lock)
 
 	unbondAmount := multiStakingCoin.BondValue()
 	unbondAmount, err = k.AdjustUnbondAmount(ctx, multiStakerAddr, valAcc, unbondAmount)
@@ -242,8 +241,6 @@ func (k Keeper) Undelegate(ctx sdk.Context, msg *stakingtypes.MsgUndelegate) (*s
 	}
 	unbondCoin := sdk.NewCoin(bondDenom, unbondAmount)
 
-	k.SetMultiStakingUnlockEntry(ctx, types.MultiStakingUnlockID(msg.DelegatorAddress, msg.ValidatorAddress), multiStakingCoin)
-
 	// Create a stakingMsgServer instance to handle the undelegation with all proper events and telemetry
 	stakingMsgServer := stakingkeeper.NewMsgServerImpl(k.stakingKeeper)
 
@@ -254,6 +251,15 @@ func (k Keeper) Undelegate(ctx sdk.Context, msg *stakingtypes.MsgUndelegate) (*s
 		Amount:           unbondCoin,
 	}
 
-	// Call the staking MsgServer to handle undelegation with all side effects
-	return stakingMsgServer.Undelegate(ctx, sdkMsg)
+	// Call the staking MsgServer before persisting multi-staking state. This keeps
+	// locks unchanged when staking returns an error or panics in a non-cached context.
+	res, err := stakingMsgServer.Undelegate(ctx, sdkMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	k.SetMultiStakingLock(ctx, lock)
+	k.SetMultiStakingUnlockEntry(ctx, types.MultiStakingUnlockID(msg.DelegatorAddress, msg.ValidatorAddress), multiStakingCoin)
+
+	return res, nil
 }

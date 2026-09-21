@@ -66,6 +66,12 @@ func (k Keeper) BurnUnbondedCoinAndUnlockedMultiStakingCoin(
 	}
 
 	unlockDenom := unlockEntry.UnlockingCoin.Denom
+	// validate unlocking coin for non-zero bond weight before UnbondAmountToUnlockAmount
+	err = unlockEntry.UnlockingCoin.Validate()
+	if err != nil {
+		return sdk.Coin{}, fmt.Errorf("invalid unlocking coint: %s", err.Error())
+	}
+
 	unlockedAmount := unlockEntry.UnbondAmountToUnlockAmount(unbondAmount)
 	unlockedCoin = sdk.NewCoin(unlockDenom, unlockedAmount)
 

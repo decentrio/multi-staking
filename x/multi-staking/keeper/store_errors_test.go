@@ -74,11 +74,14 @@ func TestSetValidatorMultiStakingCoinStoreErrors(t *testing.T) {
 }
 
 func TestGetParamsStoreError(t *testing.T) {
-	store := &failingStore{getErr: errors.New("read unavailable")}
+	injectedErr := errors.New("read unavailable")
+	store := &failingStore{getErr: injectedErr}
 	k := Keeper{
 		storeService: testStoreService{store},
 		cdc:          codec.NewProtoCodec(codectypes.NewInterfaceRegistry()),
 	}
-	require.Equal(t, types.Params{}, k.GetParams(sdk.Context{}))
+	params, err := k.GetParams(sdk.Context{})
+	require.ErrorIs(t, err, injectedErr)
+	require.Equal(t, types.Params{}, params)
 	require.False(t, store.setCalled)
 }

@@ -194,6 +194,10 @@ func (k queryServer) ValidatorMultiStakingCoin(c context.Context, req *types.Que
 }
 
 func (k queryServer) Validators(c context.Context, req *types.QueryValidatorsRequest) (*types.QueryValidatorsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "empty request")
+	}
+
 	ctx := sdk.UnwrapSDKContext(c)
 	sdkReq := stakingtypes.QueryValidatorsRequest{
 		Status:     req.Status,
