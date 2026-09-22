@@ -51,7 +51,9 @@ func (suite *KeeperTestSuite) TestMsUnlockEndBlocker() {
 			val := vals[0]
 			operatorAddr, err := sdk.ValAddressFromBech32(val.OperatorAddress)
 			suite.Require().NoError(err)
-			msDenom := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, operatorAddr)
+			msDenom, found, err := suite.msKeeper.GetValidatorMultiStakingCoin(suite.ctx, operatorAddr)
+			suite.Require().NoError(err)
+			suite.Require().True(found)
 
 			msCoin := sdk.NewCoin(msDenom, tc.lockAmount)
 

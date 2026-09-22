@@ -115,7 +115,11 @@ func (k msgServer) Delegate(goCtx context.Context, msg *stakingtypes.MsgDelegate
 		return nil, err
 	}
 
-	if !k.keeper.isValMultiStakingCoin(ctx, valAcc, msg.Amount) {
+	isMultiStakingCoin, err := k.keeper.isValMultiStakingCoin(ctx, valAcc, msg.Amount)
+	if err != nil {
+		return nil, err
+	}
+	if !isMultiStakingCoin {
 		return nil, fmt.Errorf("not allowed coin")
 	}
 
@@ -150,18 +154,32 @@ func (k msgServer) BeginRedelegate(goCtx context.Context, msg *stakingtypes.MsgB
 		return nil, err
 	}
 
-	if !k.keeper.isValMultiStakingCoin(ctx, srcValAcc, msg.Amount) || !k.keeper.isValMultiStakingCoin(ctx, dstValAcc, msg.Amount) {
+	isSourceMultiStakingCoin, err := k.keeper.isValMultiStakingCoin(ctx, srcValAcc, msg.Amount)
+	if err != nil {
+		return nil, err
+	}
+	isDestinationMultiStakingCoin, err := k.keeper.isValMultiStakingCoin(ctx, dstValAcc, msg.Amount)
+	if err != nil {
+		return nil, err
+	}
+	if !isSourceMultiStakingCoin || !isDestinationMultiStakingCoin {
 		return nil, fmt.Errorf("not allowed Coin")
 	}
 
 	fromLockID := types.MultiStakingLockID(msg.DelegatorAddress, msg.ValidatorSrcAddress)
-	fromLock, found := k.keeper.GetMultiStakingLock(ctx, fromLockID)
+	fromLock, found, err := k.keeper.GetMultiStakingLock(ctx, fromLockID)
+	if err != nil {
+		return nil, err
+	}
 	if !found {
 		return nil, fmt.Errorf("lock not found")
 	}
 
 	toLockID := types.MultiStakingLockID(msg.DelegatorAddress, msg.ValidatorDstAddress)
-	toLock := k.keeper.GetOrCreateMultiStakingLock(ctx, toLockID, msg.Amount.Denom)
+	toLock, err := k.keeper.GetOrCreateMultiStakingLock(ctx, toLockID, msg.Amount.Denom)
+	if err != nil {
+		return nil, err
+	}
 
 	multiStakingCoin := fromLock.MultiStakingCoin(msg.Amount.Amount)
 
@@ -217,12 +235,19 @@ func (k msgServer) CancelUnbondingDelegation(goCtx context.Context, msg *staking
 		return nil, err
 	}
 
-	if !k.keeper.isValMultiStakingCoin(ctx, valAcc, msg.Amount) {
+	isMultiStakingCoin, err := k.keeper.isValMultiStakingCoin(ctx, valAcc, msg.Amount)
+	if err != nil {
+		return nil, err
+	}
+	if !isMultiStakingCoin {
 		return nil, fmt.Errorf("not allow coin")
 	}
 
 	unlockID := types.MultiStakingUnlockID(msg.DelegatorAddress, msg.ValidatorAddress)
-	unlockEntry, found := k.keeper.GetUnlockEntryAtCreationHeight(ctx, unlockID, msg.CreationHeight)
+	unlockEntry, found, err := k.keeper.GetUnlockEntryAtCreationHeight(ctx, unlockID, msg.CreationHeight)
+	if err != nil {
+		return nil, err
+	}
 	if !found {
 		return nil, fmt.Errorf("unbonding delegation entry is not found at block height %d", msg.CreationHeight)
 	}
@@ -269,7 +294,10 @@ func (k msgServer) CancelUnbondingDelegation(goCtx context.Context, msg *staking
 	cancelUnbondingCoin := sdk.NewCoin(bondDenom, cancelUnbondingAmount)
 
 	lockID := types.MultiStakingLockID(msg.DelegatorAddress, msg.ValidatorAddress)
-	lock := k.keeper.GetOrCreateMultiStakingLock(ctx, lockID, cancelUnlockingCoin.Denom)
+	lock, err := k.keeper.GetOrCreateMultiStakingLock(ctx, lockID, cancelUnlockingCoin.Denom)
+	if err != nil {
+		return nil, err
+	}
 	err = lock.AddCoinToMultiStakingLock(cancelUnlockingCoin)
 	if err != nil {
 		return nil, err

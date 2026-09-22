@@ -19,7 +19,10 @@ func (k Keeper) AddMultiStakingCoinProposal(
 	ctx sdk.Context,
 	p *types.AddMultiStakingCoinProposal,
 ) error {
-	_, found := k.GetBondWeight(ctx, p.Denom)
+	_, found, err := k.GetBondWeight(ctx, p.Denom)
+	if err != nil {
+		return err
+	}
 	if found {
 		return fmt.Errorf("Error MultiStakingCoin %s already exist", p.Denom) //nolint:stylecheck
 	}
@@ -80,7 +83,10 @@ func (k Keeper) BondWeightProposal(
 	ctx sdk.Context,
 	p *types.UpdateBondWeightProposal,
 ) error {
-	_, found := k.GetBondWeight(ctx, p.Denom)
+	_, found, err := k.GetBondWeight(ctx, p.Denom)
+	if err != nil {
+		return err
+	}
 	if !found {
 		return fmt.Errorf("Error MultiStakingCoin %s not found", p.Denom) //nolint:stylecheck
 	}
@@ -109,7 +115,10 @@ func (k Keeper) RemoveMultiStakingCoinProposal(
 	ctx sdk.Context,
 	p *types.RemoveMultiStakingCoinProposal,
 ) error {
-	_, found := k.GetBondWeight(ctx, p.Denom)
+	_, found, err := k.GetBondWeight(ctx, p.Denom)
+	if err != nil {
+		return err
+	}
 	if !found {
 		return fmt.Errorf("Error MultiStakingCoin %s not found", p.Denom) //nolint:stylecheck
 	}

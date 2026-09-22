@@ -60,7 +60,10 @@ func (k Keeper) BurnUnbondedCoinAndUnlockedMultiStakingCoin(
 ) (unlockedCoin sdk.Coin, err error) {
 	// get unlock record
 	unlockID := types.MultiStakingUnlockID(multiStakerAddr.String(), valAddr.String())
-	unlockEntry, found := k.GetUnlockEntryAtCreationHeight(ctx, unlockID, unbondingHeight)
+	unlockEntry, found, err := k.GetUnlockEntryAtCreationHeight(ctx, unlockID, unbondingHeight)
+	if err != nil {
+		return sdk.Coin{}, err
+	}
 	if !found {
 		return sdk.Coin{}, fmt.Errorf("unlock entry not found")
 	}

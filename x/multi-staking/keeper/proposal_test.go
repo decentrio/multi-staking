@@ -23,7 +23,8 @@ func (suite *KeeperTestSuite) TestAddMultiStakingCoinProposal() {
 		{
 			desc: "Success",
 			malleate: func(p *types.AddMultiStakingCoinProposal) {
-				_, found := suite.msKeeper.GetBondWeight(suite.ctx, p.Denom)
+				_, found, err := suite.msKeeper.GetBondWeight(suite.ctx, p.Denom)
+				suite.Require().NoError(err)
 				suite.Require().False(found)
 			},
 			proposal: &types.AddMultiStakingCoinProposal{
@@ -66,7 +67,8 @@ func (suite *KeeperTestSuite) TestAddMultiStakingCoinProposal() {
 				err = handler(suite.ctx, tc.proposal)
 				suite.Require().NoError(err)
 
-				_, found := suite.msKeeper.GetBondWeight(suite.ctx, tc.proposal.Denom)
+				_, found, err := suite.msKeeper.GetBondWeight(suite.ctx, tc.proposal.Denom)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 			} else {
 				// store proposal
@@ -145,7 +147,8 @@ func (suite *KeeperTestSuite) TestUpdateBondWeightProposal() {
 				err = handler(suite.ctx, tc.proposal)
 				suite.Require().NoError(err)
 
-				weight, found := suite.msKeeper.GetBondWeight(suite.ctx, tc.proposal.Denom)
+				weight, found, err := suite.msKeeper.GetBondWeight(suite.ctx, tc.proposal.Denom)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().True(weight.Equal(*tc.proposal.UpdatedBondWeight))
 			} else {

@@ -41,7 +41,10 @@ func (suite *KeeperTestSuite) TestCreateValidatorPropagatesDuplicateCoinError() 
 	response, err := suite.msgServer.CreateValidator(ctx, &msg)
 	suite.Require().Nil(response)
 	suite.Require().ErrorContains(err, "validator multi staking coin already set")
-	suite.Require().Equal(MultiStakingDenomB, suite.msKeeper.GetValidatorMultiStakingCoin(ctx, valAddr))
+	denom, found, getErr := suite.msKeeper.GetValidatorMultiStakingCoin(ctx, valAddr)
+	suite.Require().NoError(getErr)
+	suite.Require().True(found)
+	suite.Require().Equal(MultiStakingDenomB, denom)
 	_, err = suite.app.StakingKeeper.GetValidator(ctx, valAddr)
 	suite.Require().ErrorIs(err, stakingtypes.ErrNoValidatorFound)
 	suite.Require().Equal(sdk.NewInt64Coin(MultiStakingDenomA, 1000), suite.app.BankKeeper.GetBalance(suite.ctx, delAddr, MultiStakingDenomA))
@@ -190,7 +193,8 @@ func (suite *KeeperTestSuite) TestCreateValidator() {
 			} else {
 				suite.Require().NoError(err)
 				lockId := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr.String())
-				lockRecord, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				lockRecord, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				actualBond, err := suite.app.StakingKeeper.GetDelegation(suite.ctx, delAddr, valAddr)
 				suite.Require().NoError(err)
@@ -512,7 +516,8 @@ func (suite *KeeperTestSuite) TestDelegate() {
 			} else {
 				suite.Require().NoError(err)
 				lockId := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr.String())
-				lockRecord, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				lockRecord, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expRate, lockRecord.GetBondWeight())
 
@@ -607,9 +612,11 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 
 				fromID := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr1.String())
 				toID := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr2.String())
-				fromBefore, found := msKeeper.GetMultiStakingLock(ctx, fromID)
+				fromBefore, found, getErr := msKeeper.GetMultiStakingLock(ctx, fromID)
+				suite.Require().NoError(getErr)
 				suite.Require().True(found)
-				_, found = msKeeper.GetMultiStakingLock(ctx, toID)
+				_, found, getErr = msKeeper.GetMultiStakingLock(ctx, toID)
+				suite.Require().NoError(getErr)
 				suite.Require().False(found)
 
 				// Keep the multi-staking validator mapping while removing the staking
@@ -620,10 +627,12 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 				))
 				suite.Require().Error(err)
 
-				fromAfter, found := msKeeper.GetMultiStakingLock(ctx, fromID)
+				fromAfter, found, getErr := msKeeper.GetMultiStakingLock(ctx, fromID)
+				suite.Require().NoError(getErr)
 				suite.Require().True(found)
 				suite.Require().Equal(fromBefore, fromAfter)
-				_, found = msKeeper.GetMultiStakingLock(ctx, toID)
+				_, found, getErr = msKeeper.GetMultiStakingLock(ctx, toID)
+				suite.Require().NoError(getErr)
 				suite.Require().False(found)
 
 				return nil, err
@@ -742,7 +751,8 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 			} else {
 				suite.Require().NoError(err)
 				lockId1 := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr1.String())
-				lockRecord1, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId1)
+				lockRecord1, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId1)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expRate[0], lockRecord1.GetBondWeight())
 				suite.Require().Equal(tc.expLock[0], lockRecord1.LockedCoin.Amount)
@@ -758,7 +768,8 @@ func (suite *KeeperTestSuite) TestBeginRedelegate() {
 				suite.Require().Equal(expShares1, delegation1.GetShares())
 
 				lockId2 := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr2.String())
-				lockRecord2, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId2)
+				lockRecord2, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId2)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expRate[1], lockRecord2.GetBondWeight())
 				suite.Require().Equal(tc.expLock[1], lockRecord2.LockedCoin.Amount)
@@ -824,9 +835,11 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 			malleate: func(ctx sdk.Context, msgServer stakingtypes.MsgServer, msKeeper multistakingkeeper.Keeper) error {
 				lockID := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr.String())
 				unlockID := multistakingtypes.MultiStakingUnlockID(delAddr.String(), valAddr.String())
-				lockBefore, found := msKeeper.GetMultiStakingLock(ctx, lockID)
+				lockBefore, found, getErr := msKeeper.GetMultiStakingLock(ctx, lockID)
+				suite.Require().NoError(getErr)
 				suite.Require().True(found)
-				_, found = msKeeper.GetMultiStakingUnlock(ctx, unlockID)
+				_, found, getErr = msKeeper.GetMultiStakingUnlock(ctx, unlockID)
+				suite.Require().NoError(getErr)
 				suite.Require().False(found)
 
 				params, err := suite.app.StakingKeeper.GetParams(ctx)
@@ -839,10 +852,12 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 				))
 				suite.Require().Error(err)
 
-				lockAfter, found := msKeeper.GetMultiStakingLock(ctx, lockID)
+				lockAfter, found, getErr := msKeeper.GetMultiStakingLock(ctx, lockID)
+				suite.Require().NoError(getErr)
 				suite.Require().True(found)
 				suite.Require().Equal(lockBefore, lockAfter)
-				_, found = msKeeper.GetMultiStakingUnlock(ctx, unlockID)
+				_, found, getErr = msKeeper.GetMultiStakingUnlock(ctx, unlockID)
+				suite.Require().NoError(getErr)
 				suite.Require().False(found)
 
 				return err
@@ -918,7 +933,8 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 			} else {
 				suite.Require().NoError(err)
 				lockId := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr.String())
-				lockRecord, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				lockRecord, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expLock, lockRecord.LockedCoin.Amount)
 
@@ -933,7 +949,8 @@ func (suite *KeeperTestSuite) TestUndelegate() {
 				suite.Require().Equal(expShares, delegation.GetShares())
 
 				unlockID := multistakingtypes.MultiStakingUnlockID(delAddr.String(), valAddr.String())
-				unbondRecord, found := suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+				unbondRecord, found, err := suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expUnlock, unbondRecord.Entries[0].UnlockingCoin.Amount)
 
@@ -1078,7 +1095,8 @@ func (suite *KeeperTestSuite) TestCancelUnbondingDelegation() {
 			} else {
 				suite.Require().NoError(err)
 				lockId := multistakingtypes.MultiStakingLockID(delAddr.String(), valAddr.String())
-				lockRecord, found := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				lockRecord, found, err := suite.msKeeper.GetMultiStakingLock(suite.ctx, lockId)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expLock, lockRecord.LockedCoin.Amount)
 
@@ -1093,7 +1111,8 @@ func (suite *KeeperTestSuite) TestCancelUnbondingDelegation() {
 				suite.Require().Equal(expShares, delegation.GetShares())
 
 				unlockID := multistakingtypes.MultiStakingUnlockID(delAddr.String(), valAddr.String())
-				unbondRecord, found := suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+				unbondRecord, found, err := suite.msKeeper.GetMultiStakingUnlock(suite.ctx, unlockID)
+				suite.Require().NoError(err)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.expUnlock, unbondRecord.Entries[0].UnlockingCoin.Amount)
 
