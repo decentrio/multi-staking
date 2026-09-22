@@ -149,7 +149,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	// migrate staking module
 	m := keeper.NewMigrator(am.sk, am.legacySubspace)
 	if err := cfg.RegisterMigration(multistakingtypes.ModuleName, 1, m.Migrate1to2); err != nil {
-		panic(fmt.Sprintf("failed to migrate x/%s from version 1 to 2: %v", stakingtypes.ModuleName, err))
+		panic(fmt.Sprintf("failed to migrate x/%s from version 1 to 2: %v", multistakingtypes.ModuleName, err))
 	}
 }
 
